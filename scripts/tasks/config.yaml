@@ -1,0 +1,33 @@
+LLM:
+  openai_api_key: 0
+  deepseek_api_key: sk-6a2ac93f7c4b4a66949ebc942afd4288
+aztecs:
+  model: gpt-3.5-turbo-1106
+  reflection: false
+  simulation: true
+  workflow: true
+china:
+  model: gpt-3.5-turbo-1106
+  reflection: false
+  simulation: false
+  workflow: false
+egypt:
+  model: gpt-3.5-turbo-1106
+  reflection: false
+  simulation: false
+  workflow: false
+greece:
+  model: gpt-3.5-turbo-1106
+  reflection: true
+  simulation: true
+  workflow: true
+mongolia:
+  model: gpt-3.5-turbo-1106
+  reflection: true
+  simulation: true
+  workflow: true
+rome:
+  model: gpt-3.5-turbo-1106
+  reflection: false
+  simulation: false
+  workflow: true

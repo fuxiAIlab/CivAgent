@@ -1,0 +1,15 @@
+# from .ask_for_object.task_worker_prompt import AskForObjectPrompt_Chat, AskForObjectPrompt_Chat_Config, AskForObjectPrompt_Identify, AskForObjectPrompt_Identify_Config
+# from .change_closeness.task_worker_prompt import ChangeClosenessPrompt_Chat, ChangeClosenessPrompt_Chat_Config
+# from .chat.task_worker_prompt import ChatPrompt_Chat, ChatPrompt_Chat_Config, ChatPrompt_Close, ChatPrompt_Close_Config
+# # from .force_surrender.task_worker_prompt import DeclareWarPrompt_Chat, DeclareWarPrompt_Chat_Config
+# from .form_ally.task_worker_prompt import FormAllyPrompt_Chat, FormAllyPrompt_Chat_Config
+# from .friendly_statement.task_worker_prompt import FriendlyStatementPrompt_Chat, FriendlyStatementPrompt_Chat_Config
+# from .intention_understanding.task_worker_prompt import IntentionUnderstandingPrompt, IntentionUnderstandingPrompt_Config, DoubleCheckPrompt, DoubleCheckPrompt_Config
+# from .mutual_defense.task_worker_prompt import MutualDefensePrompt_Chat, MutualDefensePrompt_Chat_Config
+# from .open_border.task_worker_prompt import OpenBorderPrompt_Chat, OpenBorderPrompt_Chat_Config
+from .propose_trade.task_worker_prompt import ProposeTradePrompt_Chat, ProposeTradePrompt_Chat_Config, ProposeTradePrompt_Identify, ProposeTradePrompt_Identify_Config, ProposeTradePrompt_BarginBuyer, ProposeTradePrompt_BarginBuyer_Config, ProposeTradePrompt_BarginSeller, ProposeTradePrompt_BarginSeller_Config
+# from .research_agreement.task_worker_prompt import ResearchAgreementPrompt_Chat, ResearchAgreementPrompt_Chat_Config
+# from .seek_peace.task_worker_prompt import SeekPeacePrompt_Chat, SeekPeacePrompt_Chat_Config
+# from .nonsense.task_worker_prompt import NonsensePrompt_Close,NonsensePrompt_Close_Config
+# from .common_enemy.task_worker_prompt import CommonEnemyPrompt_Chat, CommonEnemyPrompt_Chat_Config
+# from .deceive.task_worker_prompt import DeceivePrompt_Chat_Config,DeceivePrompt_Chat_first,DeceivePrompt_Chat_action,DeceivePrompt_Chat_second

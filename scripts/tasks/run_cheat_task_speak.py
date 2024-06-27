@@ -1,5 +1,7 @@
+import logging
 import os
 import sys
+import time
 current_file_path = os.path.realpath(__file__)
 config_path = os.path.normpath(os.path.join(os.path.dirname(current_file_path), 'config.yaml'))
 os.environ['CIVAGENT_CONFIG_PATH'] = config_path
@@ -11,11 +13,18 @@ from civsim import action_space
 from civsim import logger
 from civsim import utils
 from functools import partial
-from civagent import civagent, skills
+from civagent import civagent
 from civagent.utils.utils import save2req
-
-gameid = 'aa9092fe-61fb-4554-8102-d77d5c689851'
-from_name = 'player'
+from civagent import default_gameid, default_from_name
+from civagent import action_space as agent_action_space
+logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.DEBUG)
+current_time = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+file_handler = logging.FileHandler(f'../../Log/cheat_{current_time}.log')
+file_handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter()
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 agents = {}
 
 
@@ -25,7 +34,7 @@ def run_cheat(save_path, deceiver_model, detector_model):
 
     robot_names = utils.get_all_civs(save_data)
     for robot_name in robot_names:
-        agent = civagent.CivAgent(from_name, robot_name, "", "", save_data, gameid)
+        agent = civagent.CivAgent(default_from_name, robot_name, "", "", save_data, default_gameid)
         agent.init()
         agent.update(save_data)
         agents[robot_name] = agent
@@ -38,9 +47,9 @@ def run_cheat(save_path, deceiver_model, detector_model):
         receive_agent = agents[receive_civ]
         req = save2req(save_data, speak_agent, text='', speaker_civ_name=receive_civ, receiver_civ_name=speak_civ)
         req_to_civ = save2req(save_data, receive_agent, text='', speaker_civ_name=speak_civ, receiver_civ_name=receive_civ)
-        tools = list(
+        bot_skills = list(
             utils.format_nested_values(
-                skills.skill_space,
+                agent_action_space.skill_space,
                 {
                     "civ_names": robot_names,
                     "luxury_space_list": action_space.luxury_space_list,
@@ -49,10 +58,10 @@ def run_cheat(save_path, deceiver_model, detector_model):
             ).values()
         )
         # prompt_cheat = speak_prompt.format(**req)
-        req['use_tool'] = 1
-        req["skill"] = skills.skills[3]
-        tool = {'tool': tools[1]}
-        prompt_cheat = AgentPrompt_skill_noworkflow.format(**req, **tool)
+        req['use_skill'] = 1
+        req["skill"] = agent_action_space.skills[3]
+        skill_d = {'skill_info': bot_skills[1]}
+        prompt_cheat = AgentPrompt_skill_noworkflow.format(**req, **skill_d)
         # for i in range(50):
         content = {}
         if deceiver_model == "human":
@@ -60,9 +69,9 @@ def run_cheat(save_path, deceiver_model, detector_model):
             req_to_civ["speak_content"] = content['content']
         else:
             proposals, _, _ = workflow_utils.run_workflows_with_tools(
-                tools,
+                bot_skills,
                 partial(exec_skill, save_data, agent),
-                req={"prompt": prompt_cheat, **req, "tool": tools},
+                req={"prompt": prompt_cheat, **req, "skill_info": bot_skills[1]},
                 model=deceiver_model
             )
             req_to_civ["speak_content"] = proposals[0]['param']['fake_news']
@@ -82,8 +91,8 @@ def run_cheat(save_path, deceiver_model, detector_model):
                 except:
                     try_num += 1
         num[decision['Decision']] += 1
-        logger.info(f"num: {num}")
-    logger.info(f"num: {num}")
+        logger.debug(f"num: {num}")
+    logger.debug(f"num: {num}")
 
 
 def check_model(model):
@@ -96,11 +105,11 @@ def check_model(model):
 
 if __name__ == '__main__':
     arguments = sys.argv
-    logger.info(f"Arguments: {arguments}")
+    logger.debug(f"Arguments: {arguments}")
     if len(arguments) > 1:
         save_path = str(arguments[1])
         llm_model_1 = check_model(str(arguments[2]))
         llm_model_2 = check_model(str(arguments[3]))
         run_cheat(save_path, llm_model_1, llm_model_2)
     else:
-        print("No arguments provided")
+        logger.debug("No arguments provided")

@@ -130,6 +130,18 @@ aztecs:
   #Use the Ollama
     model: 'mistral'
 ```
+### Supported model parameters
+Currently, our benchmark supports the following model types:
+```
+OpenAI series (including compatible models):
+  -  gpt-3.5-turbo-1106
+  -  gpt-4-1106-preview
+  -  deepseek
+  
+Large local models:
+  -  All supported open-source large model types by Ollama
+```
+Welcome everyone to use DeepSeek to experience our benchmark (for testing purposes only, DeepSeek is a large Chinese model).
 
 ##  Running experiments
 
@@ -220,24 +232,44 @@ The detailed parameters can be seen in the following table:
 | Recognition Model | The model used by the recognizer |
 
 ##  Use a local game ai server
+If you want to experience our benchmark within the game interface, you will need to open our provided local game AI server. Below are the specific steps:
 
-If you want to use the local big model proxy in multiplayer online games, then you need to open the local game decision server provided by us.
+### Step 1.  Download the game
 
-### Step 1. Starting the Flask Server
+Mac: The client download link is https://drive.google.com/file/d/1Ohx6pvcdZbVzte0cAaXPHEAIRpJ2obqK/view?usp=sharing.
 
-Again, the decision server is implemented as a Flask project, and as such, you will need to start the flask server. Then run the following command:
+Windows: The client download link is https://drive.google.com/file/d/1ap99uZnhcpgIkDgJKAaPk277bTBi34Ag/view?usp=sharing.
 
+Please download the corresponding game client based on your operating system.
+
+### Step 2. Model Configuration
+In the game, you need to configure the basic parameters of CivAgent. Set them in `scripts/tasks/config.yaml` (as introduced earlier).
+
+### Step 3. To run the game
+
+Windows: Click on the Unciv.exe file, then enter the game.
+
+Mac: Click on the Unciv.jar file, then enter the game.
+
+In the game creation interface, you need to make the following settings:
+```
+1. Set the number of city-states to 0.
+2. Turn off multiplayer online games.
+```
+### Step 4. Open the server
+The game AI server is implemented using Flask, so you need to start the Flask server. Then run the following command:
+```
+cd deployment
 python flask_server.py
-### Step 2. Game file Configuration
-
-Please modify the configuration in the game file DebugUtils.kt as follows:
-
 ```
-var NEED_POST: Boolean = true
-```
-If you've made it this far, then congratulations, you've linked the in-game decisions to your local server. If you want to customize your own foreign policy decisions, read on.
+If you have achieved this, congratulations, you have successfully linked the decision-making in the game to the local server. At this point, you can begin experiencing our benchmark.
+### Step 5. Decision Visualization
+In the server terminal interface, you can see the decision requests sent from the game.
 
-### Step 3. Customize the decision module
+In the `Log` folder, you can view the logs to see the skill selections, technology choices, production selections, and diplomatic decision information for each CivAgent in the game.
+
+If you want to customize your own diplomatic decision module, please continue reading.
+### Step 6. Customize the decision module
 
 In the existing game decision server, the prototype of the decision module is the existing game behavior tree. If you are a developer or researcher who would like to further research and develop foreign policy decisions, we provide examples for reference.
 

@@ -1,25 +1,35 @@
 import copy
 import os
+import time
 current_file_path = os.path.realpath(__file__)
 config_path = os.path.normpath(os.path.join(os.path.dirname(current_file_path), 'config.yaml'))
 os.environ['CIVAGENT_CONFIG_PATH'] = config_path
 import sys
 import yaml
+import logging
 from civagent.utils import workflow_utils
 from civsim import logger
+# import civsim
 from civagent import civagent
+from civagent import action_space as agent_action_space
 from civagent.task_prompt import prompt_hub as PromptHub
 from civagent.utils.skills_utils import exec_skill
-from civagent import skills
 from functools import partial
 from civsim import action_space, utils
 from civsim.simulator import simulator
 from civagent.utils.utils import save2req
-
+from civagent import default_gameid, default_from_name
 # Use simulated switches
 simulation = False
-from_name = 'player'
-gameid = 'aa9092fe-61fb-4554-8102-d77d5c689851'
+logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.DEBUG)
+current_time = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+file_handler = logging.FileHandler(f'../../Log/benchmark_{current_time}.log')
+file_handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter()
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
 save_path = '../reproductions/Autosave'
 agents = {}
 turns = 3
@@ -48,7 +58,7 @@ def run_benchmark(reflection_mode, save_path, turns, key="declare_war", config_d
         robot_names = utils.get_all_civs(save_data)
         # todo Determine if civilization has been wiped out, and skip if it has
         for robot_name in robot_names:
-            agent = civagent.CivAgent(from_name, robot_name, "", "", save_data, gameid)
+            agent = civagent.CivAgent(default_from_name, robot_name, "", "", save_data, default_gameid)
             agent.init()
             agent.update(save_data)
             agents[robot_name] = agent
@@ -58,7 +68,7 @@ def run_benchmark(reflection_mode, save_path, turns, key="declare_war", config_d
             "luxury_space_list": action_space.luxury_space_list,
             "resource_space_list": action_space.resource_space_list
         }
-        tools = list(utils.format_nested_values(skills.skill_space, param_for_tools).values())
+        bot_skills = list(utils.format_nested_values(agent_action_space.skill_space, param_for_tools).values())
         for robot_name in robot_names:
             # todo Test cases
             agent = agents[robot_name]
@@ -69,18 +79,18 @@ def run_benchmark(reflection_mode, save_path, turns, key="declare_war", config_d
             # model = civ_model[robot_name]
             # todo In the case of a conversation between two individuals, it should be changed to agent-based request.
             req = save2req(save_data, agent, text='', speaker_civ_name='', receiver_civ_name=robot_name)
-            req['use_tool'] = 3
+            req['use_skill'] = 3
             req['short_term'] = agent.short_term
-            req['skill'] = skills.skills
-            tool = {'tool': tools}
+            req['skill'] = agent_action_space.skills
+            skill_d = {'skill_info': bot_skills}
             if workflow == "True" or workflow is True or workflow == "true":
-                prompt = PromptHub.AgentPrompt_analyze.format(**req, **tool)
+                prompt = PromptHub.AgentPrompt_analyze.format(**req, **skill_d)
             else:
-                prompt = PromptHub.AgentPrompt_skill_noworkflow.format(**req, **tool)
+                prompt = PromptHub.AgentPrompt_skill_noworkflow.format(**req, **skill_d)
             # todo let's only allow the agent to make one proposal per round.
-            param_for_req = {"prompt": prompt, "maxTokens": 200, **req, "tool": tools}
+            param_for_req = {"prompt": prompt, "maxTokens": 200, **req, "skill_info": bot_skills}
             proposals, functions, retry_count = workflow_utils.run_workflows_with_tools(
-                tools, partial(exec_skill, save_data, agent), req=param_for_req,
+                bot_skills, partial(exec_skill, save_data, agent), req=param_for_req,
                 force_json=True, model=model, workflow=workflow, reflection=civ_reflection
             )
             if robot_name not in try_num:
@@ -105,13 +115,13 @@ def run_benchmark(reflection_mode, save_path, turns, key="declare_war", config_d
                             utils.get_stats(simulator_save_data, utils.get_civ_index(simulator_save_data, robot_name))['civ_strength'] - \
                             utils.get_stats(save_data, utils.get_civ_index(save_data, robot_name))['civ_strength']
                         if score > 0:
-                            logger.info(f"{robot_name} Civilization strength increased after using {key} skill {score}")
+                            logger.debug(f"{robot_name} Civilization strength increased after using {key} skill {score}")
                             req['simulator'].append(f"{robot_name} uses the {key} skill to increase the civilization's {score} score")
                         else:
-                            logger.info(f"{robot_name} Civilization strength drops after using {key} skill {score}")
+                            logger.debug(f"{robot_name} Civilization strength drops after using {key} skill {score}")
                             req['simulator'].append(f"{robot_name} using the {key} skill decreases civilization strength by {score}")
-                    prompt = PromptHub.AgentPrompt_react.format(**req, **tool)
-                    proposals, _, _ = workflow_utils.run_workflows_with_tools(tools, partial(exec_skill, save_data, agent), req={"prompt": prompt, "maxTokens": 200, **req, "tool": tools}, force_json=True, model=model, simulator=True, workflow=workflow)
+                    prompt = PromptHub.AgentPrompt_react.format(**req, **skill_d)
+                    proposals, _, _ = workflow_utils.run_workflows_with_tools(bot_skills, partial(exec_skill, save_data, agent), req={"prompt": prompt, "maxTokens": 200, **req, "skill_info": bot_skills}, force_json=True, model=model, simulator=True, workflow=workflow)
                     for proposal in proposals:
                         for proposal_before in proposals_before:
                             if proposal['skill_name'] == proposal_before['skill_name']:
@@ -146,8 +156,8 @@ def run_benchmark(reflection_mode, save_path, turns, key="declare_war", config_d
                             model=config_data[proposal['to_civ']]['model']
                         )
                         recognition_decision = decision['Decision']
-                        fakenew = f"""At {turn} -{robot_name} says to you: {proposal['param']['fake_news']}. 
-                                    You think {recognition_decision}"""
+                        fakenew = f"""At {turn} -{robot_name} says to you: {proposal['param']['fake_news']}.""" \
+                                  + f"""You think {recognition_decision}"""
                         if len(to_civ_agent.short_term) == 3:
                             to_civ_agent.short_term.pop(0)
                         to_civ_agent.short_term.append(fakenew)
@@ -162,10 +172,10 @@ def run_benchmark(reflection_mode, save_path, turns, key="declare_war", config_d
                     to_civ, to_civ_index = proposal['to_civ'], utils.get_civ_index(save_data, proposal['to_civ'])
                     req_to_civ["short_term"] = agents[proposal['to_civ']].short_term
                     event_type = proposal['skill_name']
-                    logger.info(f"""On the {turn} turn, {robot_name} 's civilization power was  {score}, technological force is {tech_score}, 
-                                    military force is {army_score}, production force is {production_score}, population is {population_score}, 
-                                    territorial force is {territory_score},used the {event_type} skill on {to_civ},culture_score is {culture_score}, 
-                                    navy_score is {navy_score}, commerce_score is {commerce_score}""")
+                    logger.debug(f"""On the {turn} turn, {robot_name} 's civilization power was  {score}, technological force is {tech_score}, """
+                                    + f"""military force is {army_score}, production force is {production_score}, population is {population_score}, """
+                                    + f"""territorial force is {territory_score},used the {event_type} skill on {to_civ},culture_score is {culture_score}, """
+                                    + f"""navy_score is {navy_score}, commerce_score is {commerce_score}""")
                     if proposal['to_civ'] == agent.civ_name or event_type == 'cheat':
                         continue
                     to_civ_workflow = config_data[to_civ]['workflow']
@@ -173,7 +183,7 @@ def run_benchmark(reflection_mode, save_path, turns, key="declare_war", config_d
                         prompt_decision = PromptHub.AgentPrompt_analyze.format(**req_to_civ, **proposal)
                     else:
                         prompt_decision = PromptHub.AgentPrompt_reply_noworkflow.format(**req_to_civ, **proposal)
-                    logger.warning("Start decision request")
+                    logger.debug("Start decision request")
                     trynum = 0
                     decision = ''
                     while trynum < 3:
@@ -209,7 +219,7 @@ def run_benchmark(reflection_mode, save_path, turns, key="declare_war", config_d
                         save_data = decision_gm_fn(save_data)
                         agents = update_agents(save_data, agents)
                         # todo agent.relations Put on file inner_state
-                        logger.info(f" At {turn}, {to_civ} agreed to {event_type} request for {robot_name} ")
+                        logger.debug(f" At {turn}, {to_civ} agreed to {event_type} request for {robot_name} ")
                         agent.relations[f"{agent.civ_name}#{to_civ}"]["history_event"].append(proposal_yes_str)
                         agents[to_civ].relations[f"{to_civ}#{agent.civ_name}"]["history_event"].append(
                             proposal_yes_str_oppo)
@@ -221,7 +231,7 @@ def run_benchmark(reflection_mode, save_path, turns, key="declare_war", config_d
                         if to_civ not in decision_num:
                             decision_num[to_civ] = {"yes": 0, "no": 0}
                         decision_num[to_civ]["no"] += 1
-                        logger.info(f" At {turn}, {to_civ} rejected {event_type} request for {robot_name} ")
+                        logger.debug(f" At {turn}, {to_civ} rejected {event_type} request for {robot_name} ")
                         agent.relations[f"{agent.civ_name}#{to_civ}"]["history_event"].append(proposal_no_str)
                         agents[to_civ].relations[f"{to_civ}#{agent.civ_name}"]["history_event"].append(proposal_no_str_oppo)
 
@@ -238,16 +248,16 @@ def run_benchmark(reflection_mode, save_path, turns, key="declare_war", config_d
             turn = save_data['turns']
             # if turn>=turns*5:
             game_result[robot_name].append(utils.get_stats(save_data, robot_index)['civ_strength'])
-            logger.warning(f"turn:{turn} {robot_name} {utils.get_stats(save_data, robot_index)['civ_strength']}")
-        logger.info(f"Game result: {game_result}")
-    logger.info(f"Game result: {game_result}")
-    logger.info(f"Decision_num: {decision_num}")
-    logger.info(f"trynum: {try_num}")
-    logger.info(f"(replace: {replace_num})")
+            logger.debug(f"turn:{turn} {robot_name} {utils.get_stats(save_data, robot_index)['civ_strength']}")
+        logger.debug(f"Game result: {game_result}")
+    logger.debug(f"Game result: {game_result}")
+    logger.debug(f"Decision_num: {decision_num}")
+    logger.debug(f"trynum: {try_num}")
+    logger.debug(f"(replace: {replace_num})")
     # Start a reflection
-    logger.warning("Start reflection")
+    logger.debug("Start reflection")
     robot_names = utils.get_all_civs(save_data)
-    log_file_path = 'Log/error.log'  # Replace with your logfile path
+    log_file_path = ''  # Replace with your logfile path
     for robot_name in robot_names:
         civ_keyword = f"{robot_name} 's civilization power "
         keyword = key
@@ -309,7 +319,7 @@ if __name__ == "__main__":
 
 
     arguments = sys.argv
-    logger.info(f"Arguments: {arguments}")
+    logger.debug(f"Arguments: {arguments}")
     if len(arguments) > 1:
         reflection_mode = str(arguments[1])
         save_path = str(arguments[2])
@@ -333,4 +343,4 @@ if __name__ == "__main__":
 
         run_benchmark(reflection_mode, save_path, turns, key, config_data)
     else:
-        logger.warning("No arguments provided")
+        logger.debug("No arguments provided")

@@ -201,7 +201,7 @@ class Search:
 
     def dfs(self, state, visited):
         if not self.in_border(state):
-            print('out border')
+            logger.warning('search.dfs out border')
             return False
         evaluation_self = self.evaluate(state)
         if evaluation_self > 0:  # and evaluation_opp > 0:
@@ -210,7 +210,6 @@ class Search:
         visited.append(state)
 
         new_states = self.get_next_states(state)  # There can be more than one.
-        print(new_states)
         for new_state in new_states:
             if new_state not in visited and self.dfs(new_state, visited):
                 return True
@@ -219,7 +218,6 @@ class Search:
     def half_divide_search(self, left_state, right_state):
         left_offer_content = left_state['offer']
         right_offer_content = right_state['offer']
-        print(left_offer_content, right_offer_content, self.opp_bottom)
         finish_flag = True
         for i in range(len(left_offer_content)):
             if self.agent_role == 'seller':
@@ -242,7 +240,6 @@ class Search:
                 self.target_state = left_state
             return True
         new_states = self.get_next_states_divide(left_state, right_state)  # There can be more than one.
-        print(new_states)
         for new_state in new_states:
             eval_state = self.evaluate(new_state)
             if eval_state > 0 and self.agent_role == 'seller' or eval_state <= 0 and self.agent_role == 'buyer':
@@ -279,15 +276,12 @@ class Search:
                 right_init_state['offer'][i] = self.max_border[i]['amount']
             # Evaluate whether the current boundary values are profitable or not.
             eval_right = self.evaluate(right_init_state)
-            # print('eval_right:',eval_right)
             # If a profit is made, it indicates that the maximum value is the optimal solution.
             if eval_right > 0:
                 self.target_state = right_init_state
             else:
                 # If there is a loss, it indicates that the maximum value is not the optimal solution, and further searching is required.
-                print(left_init_state, right_init_state)
                 eval_left = self.evaluate(left_init_state)
-                print('eval_left:', eval_left)
                 if eval_left <= 0:
                     return [{}]
                 else:

@@ -1,6 +1,5 @@
 import json
 from typing import Any, Dict, Sequence, Tuple
-
 import httpx
 from httpx import Timeout
 from llama_index.core.base.llms.types import (
@@ -19,6 +18,7 @@ from llama_index.core.llms.custom import CustomLLM
 # from .netease_llm_utils import llm_server as openai_llm_server
 from .openai_llm_utils import llm_server as openai_llm_server
 from .deepseek_llm_utils import llm_server as deepseek_llm_server
+from civagent import logger
 
 
 DEFAULT_REQUEST_TIMEOUT = 130.0
@@ -145,7 +145,7 @@ class CustomOllama(CustomLLM):
                 )
             except Exception as e:
                 retry_count += 1
-                print(e)
+                logger.critical("An error occurred: ", exc_info=True)
 
     @llm_chat_callback()
     def stream_chat(

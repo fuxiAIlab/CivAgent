@@ -124,7 +124,7 @@ def get_civ_name(save_data, civ_index=None):
     if len(civs) > civ_index:
         return civs[civ_index].get('civName', '').lower()
     else:
-        logger.error(f"utils.——_civ_name get illegal civ_index {civ_index} of civs {civs}")
+        logger.debug(f"utils.——_civ_name get illegal civ_index {civ_index} of civs {civs}")
         return None
 
 
@@ -146,7 +146,7 @@ def get_civ_index(save_data, civ_name=''):
             return 1
         # return [index for index, d in enumerate(civs) if "playerType" in d and d["playerType"] == "Human"][0]
     else:
-        logger.error(
+        logger.debug(
             f"utils.get_civ_index get civ_name: {civ_name}, civ_names:{[x['civName'].lower() for x in civs]}"
         )
         return None
@@ -944,7 +944,7 @@ def get_decision_reason(decision, intention, req, save_data={}, use_random=True)
                     return ','.join(reasons[:2])
                 else:
                     # todo No reason or a random reason?
-                    logger.warning('0 reason in get_decision_reason', key, result)
+                    logger.debug('0 reason in get_decision_reason', key, result)
                     return ''
             except Exception as e:
                 logger.error(f"""error in get_decision_reason {key}, {req}, {e}""")

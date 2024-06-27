@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import sys
 current_file_path = os.path.realpath(__file__)
@@ -15,7 +16,14 @@ from civagent.utils.memory_utils import Memory
 from civagent.utils.utils import save2req
 from civsim.utils import default_chat_memory
 import copy
-
+logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.DEBUG)
+current_time = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+file_handler = logging.FileHandler(f'../../Log/bargin_{current_time}.log')
+file_handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter()
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 
 def get_chat(from_civ, to_civ, game_id, text):
     memo = copy.deepcopy(default_chat_memory)
@@ -96,7 +104,7 @@ def check_bargain_result(chat, response):
 if __name__ == '__main__':
     arguments = sys.argv
     # arguments = 'none ../reproductions/Autosave-China-60 rome gpt3.5 china gpt3.5'.split(' ')
-    logger.info(f"Arguments: {arguments}")
+    logger.debug(f"Arguments: {arguments}")
     if len(arguments) > 1:
         save_path = str(arguments[1])
         buyer_civ = str(arguments[2]).lower()
@@ -104,7 +112,7 @@ if __name__ == '__main__':
         seller_civ = str(arguments[4]).lower()
         seller_model = check_model(str(arguments[5]))
     else:
-        print("No arguments provided")
+        logger.debug("No arguments provided")
         exit(0)
     result = {buyer_civ: 0, seller_civ: 0}
     success_num = 0
@@ -152,17 +160,16 @@ if __name__ == '__main__':
             req_seller['Market_price_bottom'] = Market_price_bottom
             req_seller['border_info'] = seller_border_info
             req_seller['bottom_line'] = seller_line
-            # print(agent_seller.memory.get_chat_memory())
             response = reply(agent_seller, 'seller', req_seller, save_data, text)
             check_result, Price = check_bargain_result(chat_data['notify'], response['response'])
             if response.get('bargain_result', "").lower() == 'yes' or check_result:
-                print('Trade successful')
+                logger.debug('Trade successful')
                 result[seller_civ] = ((abs(Price - Market_price_bottom) / abs(Market_price_top - Market_price_bottom)) + result[seller_civ] * success_num) / (success_num + 1)
                 result[buyer_civ] = ((abs(Market_price_top - Price) / abs(Market_price_top - Market_price_bottom)) + result[buyer_civ] * success_num) / (success_num + 1)
                 success_num += 1
                 break
             elif response.get('bargain_result', "").lower() == 'no':
-                print('Trade failed')
+                logger.debug('Trade failed')
                 break
             else:
                 req_seller['bargain_cnt'] += 1
@@ -178,20 +185,20 @@ if __name__ == '__main__':
             response = reply(agent_buyer, 'buyer', req_buyer, save_data, text)
             check_result, Price = check_bargain_result(chat_data['notify'], response['response'])
             if response.get('bargain_result', "").lower() == 'yes' or check_result:
-                print('Trade successful')
+                logger.debug('Trade successful')
                 result[seller_civ] = ((abs(Price - Market_price_bottom) / abs(Market_price_top - Market_price_bottom)) + result[seller_civ] * success_num) / (success_num + 1)
                 result[buyer_civ] = ((abs(Market_price_top - Price) / abs(Market_price_top - Market_price_bottom)) + result[buyer_civ] * success_num) / (success_num + 1)
                 success_num += 1
                 break
             elif response.get('bargain_result', "").lower() == 'no':
-                print('Trade failed')
+                logger.debug('Trade failed')
                 break
             else:
                 req_buyer['bargain_cnt'] += 1
                 req_buyer = {**req_buyer, **response}
                 text = response['response']
-        logger.warning(success_num)
-        logger.warning(result)
-    logger.warning(success_num)
-    logger.warning(result)
+        logger.debug(success_num)
+        logger.debug(result)
+    logger.debug(success_num)
+    logger.debug(result)
 simulator.close_jvm()

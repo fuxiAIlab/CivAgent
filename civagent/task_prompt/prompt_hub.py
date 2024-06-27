@@ -13,9 +13,9 @@ Your military strength {relation[army_strength_compare]}{speaker_persona[civ_nam
 Your overall national strength {relation[civ_strength_compare]}{speaker_persona[civ_name]}.
 Keep in mind that you play {receiver_persona[civ_name]} from Civ V. To win, you can use the following skills:
 {skill}
-There are {use_tool} skills you can use in the current turn, preferably offensive skills (NOT the country you are at war with), and skills targeted at other countries in the game.
+There are {use_skill} skills you can use in the current turn, preferably offensive skills (NOT the country you are at war with), and skills targeted at other countries in the game.
 You can use the following skills. Below is a detailed description of the skill function and an example:
-{tool}
+{skill_info}
 The skill you choose is {last_functions}, and the simulator will be {simulator} after 10 turns.
 You can choose whether to continue to use this skill and modify the use object, or choose another skill, please output your decision, strictly in JSON format, example
    {{functions:
@@ -105,9 +105,9 @@ Your military strength {relation[army_strength_compare]}{speaker_persona[civ_nam
 Your overall national strength {relation[civ_strength_compare]}{speaker_persona[civ_name]}.
 Keep in mind that you play {receiver_persona[civ_name]} from Civ V. To win, you can use the following skills:
 {skill}
-There are {use_tool} skills you can use in the current turn, preferably offensive skills (NOT the country you are at war with), and skills targeted at other countries in the game.
+There are {use_skill} skills you can use in the current turn, preferably offensive skills (NOT the country you are at war with), and skills targeted at other countries in the game.
 You can use the following skills.    Below is a detailed description of the skill function and an example:
-{tool}
+{skill_info}
 please output your decision, strictly in JSON format, example
 {{functions:
 {{
@@ -171,6 +171,8 @@ Keep in mind that you play {receiver_persona[civ_name]} from Civ V.
 Here's what you can choose to produce for each city. {available_production}
 Please choose one for each city to produce, strictly in JSON format, example:
 {{
+"city_name": 
+    "xxx",
 "city_name": 
     "xxx"
 }}
@@ -242,10 +244,10 @@ To win the game, you can use the following skills:
 1. Buy luxury goods from other countries 2. Declare war on other countries 3. Make alliances with other countries 4. 5. Sharing real or fake intelligence with other countries 6. Adjust the orientation of foreign relations with other countries. Invite other countries to attack third parties. 9. Sign scientific research agreements with other countries
 This is where you combine the current situation and your goals to make a long term plan and a short term plan {plans}.
 This is historical reflection {retriever},
-There are {use_tool} skills that can be used in the current turn, preferably offensive skills, and skills that target other countries in the game.
+There are {use_skill} skills that can be used in the current turn, preferably offensive skills, and skills that target other countries in the game.
 You can use the following skills. Below is a detailed description of the skill function and an example:
-{tool}
-Please strictly follow the parameters described in each skill. You can choose the appropriate skill to operate on other countries according to the current situation, especially the countries in the game. Select {use_tool} skills to output in json format, please strictly follow the JSON format, example
+{skill_info}
+Please strictly follow the parameters described in each skill. You can choose the appropriate skill to operate on other countries according to the current situation, especially the countries in the game. Select {use_skill} skills to output in json format, please strictly follow the JSON format, example
 {{functions:
     {{
         function:{{
@@ -286,10 +288,10 @@ Keep in mind that you're {receiver_persona[civ_name]} from Civ V.
 To win the game, you can use the following skills:
 1. Buy luxury goods from other countries 2. Declare war on other countries 3. Make alliances with other countries 4. 5. Sharing real or fake intelligence with other countries 6. Adjust the orientation of foreign relations with other countries. Invite other countries to attack third parties. 9. Sign scientific research agreements with other countries
 This is where you combine the current situation and your goals to make a long term plan and a short term plan {plans}.
-There are {use_tool} skills that can be used in the current turn, preferably offensive skills, and skills that target other countries in the game.
+There are {use_skill} skills that can be used in the current turn, preferably offensive skills, and skills that target other countries in the game.
 You can use the following skills. Below is a detailed description of the skill function and an example:
-{tool}
-Please strictly follow the parameters described in each skill. You can choose the appropriate skill to operate on other countries according to the current situation, especially the countries in the game. Select {use_tool} skills to output in json format, please strictly follow the JSON format, example
+{skill_info}
+Please strictly follow the parameters described in each skill. You can choose the appropriate skill to operate on other countries according to the current situation, especially the countries in the game. Select {use_skill} skills to output in json format, please strictly follow the JSON format, example
 {{functions:
     {{
         function:{{

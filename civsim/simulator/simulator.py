@@ -3,6 +3,7 @@ from jpype import JPackage, JString, getDefaultJVMPath, startJVM
 import os
 import json
 from civsim import utils
+from civsim import logger
 
 cwd_old = os.getcwd()
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -25,32 +26,32 @@ gameSettings = None
 uncivFiles = None
 
 
-def returnGameInfo(filePath):
+def returnGameInfo(filepath):
     content = None
     try:
-        path = Paths.get(filePath)
+        path = Paths.get(filepath)
         content = Files.readString(path)
     except IOException as e:
-        e.printStackTrace()
+        logger.critical("An error occurred: ", exc_info=True)
     return content
 
 
-def getGameInfo(filePath, return_dict=False):
-    if isinstance(filePath, str):
-        game_info = returnGameInfo(filePath)
+def getGameInfo(filepath, return_dict=False):
+    if isinstance(filepath, str):
+        game_info = returnGameInfo(filepath)
     elif return_dict:
-        game_info = filePath
+        game_info = filepath
     else:
-        game_info = JString(json.dumps(filePath))
+        game_info = JString(json.dumps(filepath))
     return game_info
 
 
 def init_jvm():
     if jpype.isJVMStarted():
-        print("JVM already started")
+        logger.info("JVM already started")
         return
     jar_filename = "Unciv.jar"
-    jar_path = os.path.join(current_dir, "..", "resources", jar_filename)
+    jar_path = os.path.join(current_dir, "..", "..", "resources", jar_filename)
     startJVM(getDefaultJVMPath(), "-Djava.class.path=%s" % jar_path)
     global UncivGame, UncivFiles, GameSettings, DiplomacyAutomation
     global DiplomacyFunctions, TradeLogic, TradeEvaluation, HeadTowardsEnemyCityAutomation
@@ -108,8 +109,8 @@ def get_wantsToSignDeclarationOfFrienship(gameinfo, civ_name_1, civ_name_2):
     for key in reason.getSecond()['reject']:
         python_reason['reject'].append(key)
     pair_dict = {"result": bool(reason.getFirst()), "reason": python_reason}
-    # json_data = json.dumps(pair_dict)
-    return pair_dict
+    json_data = json.dumps(pair_dict)
+    return json_data
 
 
 def get_wantsToOpenBorders(gameinfo, civ_name_1, civ_name_2):
@@ -134,8 +135,8 @@ def get_wantsToOpenBorders(gameinfo, civ_name_1, civ_name_2):
     for key in reason.getSecond()['reject']:
         python_reason['reject'].append(key)
     pair_dict = {"result": bool(reason.getFirst()), "reason": python_reason}
-    # json_data = json.dumps(pair_dict)
-    return pair_dict
+    json_data = json.dumps(pair_dict)
+    return json_data
 
 
 def get_wantsToSignDefensivePact(gameinfo, civ_name_1, civ_name_2):
@@ -160,8 +161,8 @@ def get_wantsToSignDefensivePact(gameinfo, civ_name_1, civ_name_2):
     for key in reason.getSecond()['reject']:
         python_reason['reject'].append(str(key))
     pair_dict = {"result": bool(reason.getFirst()), "reason": python_reason}
-    # json_data = json.dumps(pair_dict)
-    return pair_dict
+    json_data = json.dumps(pair_dict)
+    return json_data
 
 
 def get_hasAtLeastMotivationToAttack(gameinfo, civ_name_1, civ_name_2, atlesat=10):
@@ -189,8 +190,8 @@ def get_hasAtLeastMotivationToAttack(gameinfo, civ_name_1, civ_name_2, atlesat=1
         python_reason['reject'].append(str(key))
     pair_dict = {"result": bool(reason.getFirst()), "reason": python_reason}
     # pair_dict : {"result": xxx, "reason": {'consent':[],'reject':[] }}
-    # json_data = json.dumps(pair_dict)
-    return pair_dict
+    json_data = json.dumps(pair_dict)
+    return json_data
 
 
 def get_canSignResearchAgreementsWith(gameinfo, civ_name_1, civ_name_2):
@@ -216,8 +217,8 @@ def get_canSignResearchAgreementsWith(gameinfo, civ_name_1, civ_name_2):
     for key in reason.getSecond()['reject']:
         python_reason['reject'].append(str(key))
     pair_dict = {"result": bool(reason.getFirst()), "reason": python_reason}
-    # json_data = json.dumps(pair_dict)
-    return pair_dict
+    json_data = json.dumps(pair_dict)
+    return json_data
 
 
 def get_getTradeAcceptability(gameinfo, civ_name_1, civ_name_2):
@@ -251,9 +252,9 @@ def get_getTradeAcceptability(gameinfo, civ_name_1, civ_name_2):
             for key in reason.getSecond()['reject']:
                 python_reason['reject'].append(str(key))
             pair_dict = {"result": bool(reason.getFirst()), "reason": python_reason}
-            # json_data = json.dumps(pair_dict)
-            return pair_dict
-
+            json_data = json.dumps(pair_dict)
+            return json_data
+    return json.dumps({"result": 'false', "reason": "No trade requests found"})
 
 def get_hasAtLeastMotivationToAttackScore(gameinfo, civ_name_1, civ_name_2, atlesat):
     '''
@@ -358,7 +359,7 @@ def chooseTechToResarch(gameinfo, civ1_name):
         gameinfo: String representing game information
         civ1_name: Name of the civilization
         Returns:
-        str: JSON string containing the chosen technology to research
+       json_data: A JSON string containing the chosen technology to research
     '''
     game = get_gameInfoFromString(gameinfo)
     uncivGame.setGameInfo(game)
@@ -378,7 +379,7 @@ def chooseNextConstruction(gameinfo, civ1_name, city_name):
         civ1_name: Name of the civilization
         city_name: Name of the city
         Returns:
-        str: JSON string containing the chosen construction for the city
+        json_data: A JSON string containing the chosen construction for the city
     '''
     game = get_gameInfoFromString(gameinfo)
     uncivGame.setGameInfo(game)
@@ -391,14 +392,14 @@ def chooseNextConstruction(gameinfo, civ1_name, city_name):
     return json_data
 
 
-def run_getEnemyCitiesByPriority(filePath, civ_name_1, id):
-    game_info = getGameInfo(filePath)
+def run_getEnemyCitiesByPriority(filepath, civ_name_1, id):
+    game_info = getGameInfo(filepath)
     json_data = get_getEnemyCitiesByPriority(game_info, civ_name_1, id)
     return json_data
 
 
-def run(filePath, Preturns, Diplomacy_flag, workerAuto, http_automation=False):
-    game_info = getGameInfo(filePath)
+def run(filepath, Preturns, Diplomacy_flag, workerAuto, http_automation=False):
+    game_info = getGameInfo(filepath)
 
     def predicted(gameinfo):
         if gameinfo is not None:
@@ -413,44 +414,44 @@ def run(filePath, Preturns, Diplomacy_flag, workerAuto, http_automation=False):
     return gameinfo_after10
 
 
-def run_hasAtLeastMotivationToAttackScore(filePath, civ_name_1, civ_name_2):
-    game_info = getGameInfo(filePath)
+def run_hasAtLeastMotivationToAttackScore(filepath, civ_name_1, civ_name_2):
+    game_info = getGameInfo(filepath)
     json_data = get_hasAtLeastMotivationToAttackScore(game_info, civ_name_1, civ_name_2, 20)
     return json_data
 
 
-def run_wantsToOpenBorders(filePath, civ_name_1, civ_name_2):
-    game_info = getGameInfo(filePath)
+def run_wantsToOpenBorders(filepath, civ_name_1, civ_name_2):
+    game_info = getGameInfo(filepath)
     json_data = get_wantsToOpenBorders(game_info, civ_name_1, civ_name_2)
     return json_data
 
 
-def run_wanwantsToSignDeclarationOfFrienship(filePath, civ_name_1, civ_name_2):
-    game_info = getGameInfo(filePath)
+def run_wanwantsToSignDeclarationOfFrienship(filepath, civ_name_1, civ_name_2):
+    game_info = getGameInfo(filepath)
     json_data = get_wantsToSignDeclarationOfFrienship(game_info, civ_name_1, civ_name_2)
     return json_data
 
 
-def run_wantsToSignDefensivePact(filePath, civ_name_1, civ_name_2):
-    game_info = getGameInfo(filePath)
+def run_wantsToSignDefensivePact(filepath, civ_name_1, civ_name_2):
+    game_info = getGameInfo(filepath)
     json_data = get_wantsToSignDefensivePact(game_info, civ_name_1, civ_name_2)
     return json_data
 
 
-def run_hasAtLeastMotivationToAttack(filePath, civ_name_1, civ_name_2, atlesat=10):
-    game_info = getGameInfo(filePath)
+def run_hasAtLeastMotivationToAttack(filepath, civ_name_1, civ_name_2, atlesat=10):
+    game_info = getGameInfo(filepath)
     json_data = get_hasAtLeastMotivationToAttack(game_info, civ_name_1, civ_name_2, atlesat)
     return json_data
 
 
-def run_canSignResearchAgreementsWith(filePath, civ_name_1, civ_name_2):
-    game_info = getGameInfo(filePath)
+def run_canSignResearchAgreementsWith(filepath, civ_name_1, civ_name_2):
+    game_info = getGameInfo(filepath)
     json_data = get_canSignResearchAgreementsWith(game_info, civ_name_1, civ_name_2)
     return json_data
 
 
-def run_getTradeAcceptability(filePath, civ_name_1, civ_name_2, civ1_resource_dict, civ2_resource_dict):
-    game_info = getGameInfo(filePath, return_dict=True)
+def run_getTradeAcceptability(filepath, civ_name_1, civ_name_2, civ1_resource_dict, civ2_resource_dict):
+    game_info = getGameInfo(filepath, return_dict=True)
     # todo Does it take effect when put into the archive or as a treaty pending decision?
     game_info = utils.trade_offer(game_info, civ_name_1, civ_name_2, civ1_resource_dict, civ2_resource_dict)
     json_data = get_getTradeAcceptability(game_info, civ_name_1, civ_name_2)

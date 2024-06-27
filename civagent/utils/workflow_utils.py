@@ -37,7 +37,7 @@ def run_workflows(
         if reflection and not workflow:
             return result, response, req['prompt']
         result = json.loads(result)
-        logger.warning(result)
+        logger.debug(result)
         return result, response, req['prompt']
     except json.JSONDecodeError:
         if force_json:

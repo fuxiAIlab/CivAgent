@@ -81,6 +81,18 @@ aztecs:
   #Use the Ollama
     model: 'mistral'
 ```
+### 支持的模型参数
+目前我们的benchmark支持以下模型型号:
+```
+OpenAI系列(含兼容):
+  -  gpt-3.5-turbo-1106
+  -  gpt-4-1106-preview
+  -  deepseek
+  
+Ollma本地大模型:
+  -  Ollama所支持的所有开源大模型型号
+```
+欢迎大家使用deepseek来体验我们的benchmark(仅供测试,deepseek为中文大模型)。
 
 ##  运行实验
 
@@ -153,21 +165,40 @@ python3 run_cheat_task_speak.py ../reproductions/Autosave-China-60 gpt4 gpt4
 | Cheat Model | The model used by the cheater |
 | Recognition Model | The model used by the recognizer |
 ##   使用本地AI服务器
-如果你想在多人在线游戏中使用本地大模型代理，那么你需要打开我们提供的本地游戏AI服务器。下面是具体步骤:
+如果你想在在游戏界面中体验我们的benchmark，那么你需要打开我们提供的本地游戏AI服务器。下面是具体步骤:
+### Step 1. 下载游戏
+Mac客户端下载地址是 https://drive.google.com/file/d/1Ohx6pvcdZbVzte0cAaXPHEAIRpJ2obqK/view?usp=sharing
 
-### Step 1. 打开服务器
+Windows客户端下载地址是 https://drive.google.com/file/d/1ap99uZnhcpgIkDgJKAaPk277bTBi34Ag/view?usp=sharing
+
+请根据你的操作系统下载对应的游戏客户端。
+### Step 2. 模型设置
+在游戏中，你需要配置CivAgent的基本参数。在`scripts/tasks/config.yaml`中设置(前面有所介绍)。
+### Step 3. 运行游戏
+Windows: 点击Unciv.exe文件，然后进入游戏。
+
+Mac: 点击Unciv.jar文件，然后进入游戏。
+
+在创建游戏的界面，你需要做以下设置：
+```
+1.将城邦数量设置为0
+2.将多人在线游戏关闭
+```
+### Step 4. 打开服务器
 游戏AI服务器是Flask实现的，因此需要启动Flask服务器。然后运行下面的命令:
-
-    python flask_server.py
-
-### Step 2. 游戏文件修改
-请修改游戏文件DebugUtils.kt中的配置。如下:
 ```
-var NEED_POST: Boolean = true
+cd deployment
+python flask_server.py
 ```
-如果你已经做到了这一点，那么恭喜你，你已经将游戏中的决策链接到本地服务器了。如果你想定制自己的外交政策决定，请继续阅读。
-### Step 3. 自定义决策模块
-在现有的游戏AI服务器中，决策模块的原型是现有的游戏行为树。如果您是想进一步研究和制定外交政策决策的开发人员或研究人员，我们提供示例供参考。
+如果你已经做到了这一点，那么恭喜你，你已经将游戏中的决策链接到本地服务器了。这时你已经可以开始体验我们的benchmark了。
+### Step 5. 决策可视化
+在服务器终端界面，你可以看到游戏中的发送来的决策请求。
+
+在`Log`文件夹中查看日志你可以看到游戏中各CivAgent的技能选择、科技选择、生产选择，以及外交决策信息。
+
+如果你想定制自己的外交决策模块，请继续阅读。
+### Step 6. 自定义决策模块
+在现有的游戏AI服务器中，决策模块的原型是现有的游戏行为树。如果您是想进一步研究和制定外交决策的开发人员或研究人员，我们提供示例供参考。
 
 例子如下:
 ```python

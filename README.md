@@ -17,7 +17,9 @@ Native Unciv: https://github.com/yairm210/Unciv
 
 Unciv Wiki: https://civilization.fandom.com/wiki/Unciv
 
-Unciv We Used Download (released in early July)
+Game Client Download (developer version, no Discord chat function): [Mac](https://drive.google.com/file/d/1Ohx6pvcdZbVzte0cAaXPHEAIRpJ2obqK/view?usp=sharing)   [Windows](https://drive.google.com/file/d/1ap99uZnhcpgIkDgJKAaPk277bTBi34Ag/view?usp=sharing)
+
+Game Client Download (player version, with Discord chat function, to be released in early July)
 
 Unciv We Used (source code): https://github.com/asdqsczser/Unciv/tree/release/fuxi_ver
 

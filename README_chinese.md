@@ -14,7 +14,9 @@ Unciv Wiki: https://civilization.fandom.com/wiki/Unciv
 
 Unciv We Used (source code): https://github.com/asdqsczser/Unciv/tree/release/fuxi_ver
 
-游戏下载(7月初发布)
+游戏客户端下载(开发者版本，无Discord聊天功能): [Mac客户端下载地址](https://drive.google.com/file/d/1Ohx6pvcdZbVzte0cAaXPHEAIRpJ2obqK/view?usp=sharing)   [Windows客户端下载地址](https://drive.google.com/file/d/1ap99uZnhcpgIkDgJKAaPk277bTBi34Ag/view?usp=sharing)
+
+游戏下载(玩家版本，有Discord聊天功能，7月初发布)
 
 Paper: https://openreview.net/forum?id=AuT65qKLrr
 

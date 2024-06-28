@@ -88,15 +88,20 @@ def get_gameInfoFromString(gameinfo):
 
 
 def get_wantsToSignDeclarationOfFrienship(gameinfo, civ_name_1, civ_name_2):
-    '''
-        Retrieves whether a civilization wants to sign a declaration of friendship with another civilization.
-        Args:
-        gameinfo: String representing game information
-        civ_name_1: Name of the first civilization
-        civ_name_2: Name of the second civilization
-        Returns:
-        json_data: A JSON string containing the result and reason for the declaration of friendship
-    '''
+    """
+       Assessing whether our civilization can sign a declaration of friendship with the target civilization.
+       Parameters:
+       gameinfo: String
+           Representing game information.
+       civ_name_1: String
+           The name of our civilization.
+       civ_name_2: String
+           The name of the target civilization.
+       Returns:
+            String: A JSON string containing the result and reason for being able to sign a declaration of friendship.
+       Example:
+            get_wantsToSignDeclarationOfFrienship(gameinfo, rome, greece) => {"result": "true", "reason": "Rome has a high level of trust with Greece."}
+   """
     game = get_gameInfoFromString(gameinfo)
     uncivGame.setGameInfo(game)
     uncivGame.Current = uncivGame
@@ -114,15 +119,20 @@ def get_wantsToSignDeclarationOfFrienship(gameinfo, civ_name_1, civ_name_2):
 
 
 def get_wantsToOpenBorders(gameinfo, civ_name_1, civ_name_2):
-    '''
+    """
         Retrieves whether a civilization wants to open borders with another civilization.
-        Args:
-        gameinfo: String representing game information
-        civ_name_1: Name of the first civilization
-        civ_name_2: Name of the second civilization
+        Parameters:
+        gameinfo: String
+           Representing game information.
+        civ_name_1: String
+           The name of our civilization.
+        civ_name_2: String
+           The name of the target civilization.
         Returns:
-        json_data: A JSON string containing the result and reason for wanting to open borders
-    '''
+            String: A JSON string containing the result and reason for wanting to open borders
+        Example:
+            get_wantsToOpenBorders(gameinfo, rome, greece) => {"result": "true", "reason": "Rome has a high level of trust with Greece."}
+    """
     game = get_gameInfoFromString(gameinfo)
     uncivGame.setGameInfo(game)
     uncivGame.Current = uncivGame
@@ -140,15 +150,21 @@ def get_wantsToOpenBorders(gameinfo, civ_name_1, civ_name_2):
 
 
 def get_wantsToSignDefensivePact(gameinfo, civ_name_1, civ_name_2):
-    '''
-        Retrieves whether a civilization wants to sign a defensive pact with another civilization.
-        Args:
-        gameinfo: String representing game information
-        civ_name_1: Name of the first civilization
-        civ_name_2: Name of the second civilization
-        Returns:
-        json_data: A JSON string containing the result and reason for wanting to sign a defensive pact
-    '''
+    """
+       Assessing whether our civilization can sign a defensive pact with the target civilization.
+       Parameters:
+       gameinfo: String
+           Representing game information.
+       civ_name_1: String
+           The name of our civilization.
+       civ_name_2: String
+           The name of the target civilization.
+       Returns:
+            String: A JSON string containing the result and reason for being able to sign defensive pact.
+       Example:
+             get_wantsToSignDefensivePact(gameinfo, rome, greece) => {"result": "true", "reason": "Rome has a high level of trust with Greece."}
+   """
+
     game = get_gameInfoFromString(gameinfo)
     uncivGame.setGameInfo(game)
     uncivGame.Current = uncivGame
@@ -165,23 +181,29 @@ def get_wantsToSignDefensivePact(gameinfo, civ_name_1, civ_name_2):
     return json_data
 
 
-def get_hasAtLeastMotivationToAttack(gameinfo, civ_name_1, civ_name_2, atlesat=10):
-    '''
-        Retrieves whether a civilization has at least a certain motivation level to attack another civilization.
-        Args:
-        gameinfo: String representing game information
-        civ_name_1: Name of the first civilization
-        civ_name_2: Name of the second civilization
-        at_least: The minimum motivation level for the attack
+def get_hasAtLeastMotivationToAttack(gameinfo, civ_name_1, civ_name_2, motivation=10):
+    """
+        Assessing whether a civilization has a motivation level above a certain value to determine whether to issue a declaration of peace or declare war.
+        Parameters:
+        gameinfo: String
+            Representing game information.
+        civ_name_1: String
+            The name of our civilization.
+        civ_name_2: String
+            The name of the target civilization.
+        motivation: Int
+            The minimum motivation level for the attack.The default threshold for initiating war is 20, and the threshold for peace is 10.
         Returns:
-        json_data: A JSON string containing the result and reason for having at least a certain motivation to attack
-    '''
+            String: A JSON string containing the result and reason for whether to attack or pursue peace.
+        Example:
+            get_hasAtLeastMotivationToAttack(gameinfo, rome, greece, 20) => {"result": "false", "reason": "Rome has a high level of trust with Greece."}
+    """
     game = get_gameInfoFromString(gameinfo)
     uncivGame.setGameInfo(game)
     uncivGame.Current = uncivGame
     civ1 = game.getCivilization(utils.fix_civ_name(civ_name_1))
     civ2 = game.getCivilization(utils.fix_civ_name(civ_name_2))
-    reason = DiplomacyAutomation.INSTANCE.hasAtLeastMotivationToAttack_civsim(civ1, civ2, atlesat)
+    reason = DiplomacyAutomation.INSTANCE.hasAtLeastMotivationToAttack_civsim(civ1, civ2, motivation)
     # python_reason = [str(item) for item in reason.getSecond()]
     python_reason = {'consent': [], 'reject': []}
     for key in reason.getSecond()['consent']:
@@ -195,15 +217,20 @@ def get_hasAtLeastMotivationToAttack(gameinfo, civ_name_1, civ_name_2, atlesat=1
 
 
 def get_canSignResearchAgreementsWith(gameinfo, civ_name_1, civ_name_2):
-    '''
-        Retrieves whether a civilization can sign research agreements with another civilization.
-        Args:
-        gameinfo: String representing game information
-        civ_name_1: Name of the first civilization
-        civ_name_2: Name of the second civilization
+    """
+        Assessing whether our civilization can sign a research agreement with the target civilization.
+        Parameters:
+        gameinfo: String
+            Representing game information.
+        civ_name_1: String
+            The name of our civilization.
+        civ_name_2: String
+            The name of the target civilization.
         Returns:
-        json_data: A JSON string containing the result and reason for being able to sign research agreements
-    '''
+            String: A JSON string containing the result and reason for being able to sign research agreements
+        Example:
+            get_canSignResearchAgreementsWith(gameinfo, rome, greece) => {"result": "true", "reason": "Rome has a high level of trust with Greece."}
+    """
     game = get_gameInfoFromString(gameinfo)
     uncivGame.setGameInfo(game)
     uncivGame.Current = uncivGame
@@ -222,15 +249,20 @@ def get_canSignResearchAgreementsWith(gameinfo, civ_name_1, civ_name_2):
 
 
 def get_getTradeAcceptability(gameinfo, civ_name_1, civ_name_2):
-    '''
-        Retrieves the trade acceptability between two civilizations.
-        Args:
-        gameinfo: String representing game information
-        civ_name_1: Name of the first civilization
-        civ_name_2: Name of the second civilization
+    """
+        Our civilization needs to respond to the trade request initiated by the target civilization
+        Parameters:
+        gameinfo: String
+            Representing game information.
+        civ_name_1: String
+            The name of our civilization.
+        civ_name_2: String
+            The name of the target civilization.
         Returns:
-        json_data: A JSON string containing the result and reason for the trade acceptability
-    '''
+            String: A JSON string containing the response result to the trade request, as well as the reasons.
+        Example:
+            reply_trades(gameinfo, rome, greece) => {"result": "false", "reason": "I need more resources"}
+    """
     game = get_gameInfoFromString(gameinfo)
     uncivGame.setGameInfo(game)
     uncivGame.Current = uncivGame
@@ -256,36 +288,47 @@ def get_getTradeAcceptability(gameinfo, civ_name_1, civ_name_2):
             return json_data
     return json.dumps({"result": 'false', "reason": "No trade requests found"})
 
-def get_hasAtLeastMotivationToAttackScore(gameinfo, civ_name_1, civ_name_2, atlesat):
-    '''
+def get_hasAtLeastMotivationToAttackScore(gameinfo, civ_name_1, civ_name_2, motivation):
+    """
         Retrieves the score indicating whether a civilization has at least a certain motivation level to attack another civilization.
-        Args:
-        gameinfo: String representing game information
-        civ_name_1: Name of the first civilization
-        civ_name_2: Name of the second civilization
-        at_least: The minimum motivation level for the attack
+        Parameters:
+        gameinfo: String
+            Representing game information.
+        civ_name_1: String
+            The name of our civilization.
+        civ_name_2: String
+            The name of the target civilization.
+        motivation: Int
+            The minimum motivation level for the attack.The default threshold for initiating war is 20, and the threshold for peace is 10.
         Returns:
-        str: String representation of the score indicating the motivation to attack
-    '''
+            String: String representation of the score indicating the motivation to attack
+        Example:
+            get_hasAtLeastMotivationToAttackScore(gameinfo, rome, greece, 20) => "true"
+    """
     game = get_gameInfoFromString(gameinfo)
     uncivGame.setGameInfo(game)
     uncivGame.Current = uncivGame
     civ1 = game.getCivilization(utils.fix_civ_name(civ_name_1))
     civ2 = game.getCivilization(utils.fix_civ_name(civ_name_2))
-    reason = DiplomacyAutomation.INSTANCE.hasAtLeastMotivationToAttack(civ1, civ2, atlesat)
-    return str(reason)
+    result = DiplomacyAutomation.INSTANCE.hasAtLeastMotivationToAttack(civ1, civ2, motivation)
+    return str(result)
 
 
 def get_getEnemyCitiesByPriority(gameinfo, civ_name_1, id):
-    '''
-       Retrieves enemy cities by priority for a given civilization and unit ID.
-       Args:
-       gameinfo: String representing game information
-       civ_name_1: Name of the civilization
-       id: ID of the unit
+    """
+        For our civilization's units, assess the priority of the enemy city and return its coordinates.
+        Parameters:
+        gameinfo: String
+            Representing game information.
+        civ_name_1: String
+            The name of our civilization.
+        id: String
+            ID of the unit
        Returns:
-       str: String representation of the positions of enemy cities by priority（x,y）
-    '''
+            String: The returned information is the coordinates of the city in the format (x, y).
+        Example:
+            get_getEnemyCitiesByPriority(gameinfo, rome, 1) => "(1, 2)"
+    """
     game = get_gameInfoFromString(gameinfo)
     uncivGame.setGameInfo(game)
     uncivGame.Current = uncivGame
@@ -296,16 +339,22 @@ def get_getEnemyCitiesByPriority(gameinfo, civ_name_1, id):
 
 
 def predicted(gameinfo, Preturns, Diplomacy_flag, workerAuto):
-    '''
+    """
         This function processes game information and returns predictions based on the parameters.
-        Args:
-        gameinfo: String representing game information
-        Preturns: The number of predicted returns
-        Diplomacy_flag: Flag for diplomacy status
-        workerAuto: Flag for worker automation
+        Parameters:
+        gameinfo: String
+            String representing game information
+        Preturns: Int
+            The number of predicted returns
+        Diplomacy_flag: Bool
+            Flag for diplomacy status
+        workerAuto: Bool
+            Flag for worker automation
         Returns:
-        dict: A dictionary representation of the predicted game state
-        '''
+            Dict: A dictionary representation of the predicted game state
+        Example:
+            predicted(gameinfo, 5, True, True) => savegame
+    """
     if gameinfo is not None:
         gameinfo = getGameInfo(gameinfo)
         game = get_gameInfoFromString(gameinfo)
@@ -317,14 +366,18 @@ def predicted(gameinfo, Preturns, Diplomacy_flag, workerAuto):
 
 
 def getTechToResarch_available(gameinfo, civ1_name):
-    '''
+    """
         Retrieves available technologies for research for a given civilization.
-        Args:
-        gameinfo: String representing game information
-        civ1_name: Name of the civilization
+        Parameters:
+        gameinfo: String
+            Representing game information.
+        civ1_name: String
+            The name of our civilization.
         Returns:
-        str: String representation of available technologies for research
-    '''
+            String: String representation of available technologies for research
+        Example:
+            getTechToResarch_available(gameinfo, rome) => "['Agriculture', 'Animal Husbandry', 'Writing']"
+    """
     gameinfo = get_gameInfoFromString(gameinfo)
     uncivGame.setGameInfo(gameinfo)
     uncivGame.Current = uncivGame
@@ -335,14 +388,18 @@ def getTechToResarch_available(gameinfo, civ1_name):
 
 
 def getProductionToBuild_available(gameinfo, civ1_name):
-    '''
+    """
         Retrieves available production options for a given civilization.
-        Args:
-        gameinfo: String representing game information
-        civ1_name: Name of the civilization
+        Parameters:
+        gameinfo: String
+            Representing game information.
+        civ1_name: String
+            The name of our civilization.
         Returns:
-        str: String representation of available production options
-    '''
+            String: String representation of available production options
+        Example:
+            getProductionToBuild_available(gameinfo, rome) => "['Monument', 'Granary', 'Shrine']"
+    """
     gameinfo = get_gameInfoFromString(gameinfo)
     uncivGame.setGameInfo(gameinfo)
     uncivGame.Current = uncivGame
@@ -353,14 +410,18 @@ def getProductionToBuild_available(gameinfo, civ1_name):
 
 
 def chooseTechToResarch(gameinfo, civ1_name):
-    '''
+    """
         Chooses a technology to research for a given civilization.
-        Args:
-        gameinfo: String representing game information
-        civ1_name: Name of the civilization
+        Parameters:
+        gameinfo: String
+            Representing game information.
+        civ1_name: String
+            The name of our civilization.
         Returns:
-       json_data: A JSON string containing the chosen technology to research
-    '''
+            String: A JSON string containing the chosen technology to research
+        Example:
+            chooseTechToResarch(gameinfo, rome) => {"result": "Masonry"}
+    """
     game = get_gameInfoFromString(gameinfo)
     uncivGame.setGameInfo(game)
     uncivGame.Current = uncivGame
@@ -372,15 +433,20 @@ def chooseTechToResarch(gameinfo, civ1_name):
 
 
 def chooseNextConstruction(gameinfo, civ1_name, city_name):
-    '''
+    """
         Chooses the next construction for a specific city within a civilization.
-        Args:
-        gameinfo: String representing game information
-        civ1_name: Name of the civilization
-        city_name: Name of the city
+        Parameters:
+        gameinfo: String
+            Representing game information.
+        civ1_name: String
+            The name of our civilization.
+        city_name: String
+            This is the name of a city belonging to our civilization.
         Returns:
-        json_data: A JSON string containing the chosen construction for the city
-    '''
+            String: A JSON string containing the chosen construction for the city
+        Example:
+            chooseNextConstruction(gameinfo, rome, rome) => {"result": "worker"}
+    """
     game = get_gameInfoFromString(gameinfo)
     uncivGame.setGameInfo(game)
     uncivGame.Current = uncivGame

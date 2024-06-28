@@ -189,6 +189,8 @@ Mac: 点击Unciv.jar文件，然后进入游戏。
 ```
 cd deployment
 python flask_server.py
+
+默认端口: http://127.0.0.1:2337
 ```
 如果你已经做到了这一点，那么恭喜你，你已经将游戏中的决策链接到本地服务器了。这时你已经可以开始体验我们的benchmark了。
 ### Step 5. 决策可视化
@@ -200,28 +202,62 @@ python flask_server.py
 ### Step 6. 自定义决策模块
 在现有的游戏AI服务器中，决策模块的原型是现有的游戏行为树。如果您是想进一步研究和制定外交决策的开发人员或研究人员，我们提供示例供参考。
 
-例子如下:
+在游戏文件的`DebugUtils.kt`中，我们提供了名为`NEED_GameInfo`的开关，用于控制是否将完整的游戏存档传递给服务器。如果你想要传递完整游戏存档信息，你需要设置为`True`，否则设置为`False`。若设置为`False`，游戏存档信息会是一个空字符串。
+
+现有的服务器中我们提供了两种AI服务：
+```
+use_ai == 'civagent'  # 使用LLM进行决策
+use_ai == 'native_unciv'  # 使用原生的游戏行为树进行决策 
+注意：在use_ai == 'native_unciv'的情况下，NEED_GameInfo的值需设置为True。
+```
+
+在目前的AI服务器中，以下函数是会收到该开关的影响，其余函数默认会收到完整的游戏存档：
 ```python
-def get_wantsToSignDeclarationOfFrienship(gameinfo, civ1_name, civ2_name):
+get_canSignResearchAgreementsWith()
+get_wantsToSignDefensivePact()
+get_hasAtLeastMotivationToAttack()
+get_wantsToSignDeclarationOfFrienship()
+chooseTechToResarch()
+chooseNextConstruction()
+get_hasAtLeastMotivationToAttack()
+get_commonenemy()
+get_buyluxury()
+```
+您可以定义自己的外交决策函数，函数的参数和返回值需要与现有的函数保持一致。具体的函数例子如下:
+```python
+def get_wantsToSignDeclarationOfFrienship(gameinfo, civ_name_1, civ_name_2):
     '''
-        Retrieves whether a civilization wants to sign a declaration of friendship with another civilization.
-        Args:
-        gameinfo: String representing game information
-        civ1_name: Name of the first civilization
-        civ2_name: Name of the second civilization
+        Assessing whether our civilization can sign a declaration of friendship with the target civilization.
+        parameters:
+        gameinfo: String
+            Representing game information.
+        civ_name_1: String
+            The name of our civilization.
+        civ_name_2: String
+            The name of the target civilization.
         Returns:
-        json_data: A JSON string containing the result and reason for the declaration of friendship
+            if use_ai == 'civagent':
+                String: A JSON string containing the result of being able to sign a declaration of friendship.
+            if use_ai == 'native_unciv':
+                String: A JSON string containing the result and reason for being able to sign a declaration of friendship.
+        Example:
+            if use_ai == 'civagent':
+                get_wantsToSignDeclarationOfFrienship(gameinfo, rome, greece) => {"result": "false"}
+            if use_ai == 'native_unciv':
+                get_wantsToSignDeclarationOfFrienship(gameinfo, rome, greece) => {"result": "true", "reason": "Rome has a high level of trust with Greece."}
     '''
-    game = uncivFiles.gameInfoFromString_easy(gameinfo)
-    uncivGame.setGameInfo(game)
-    uncivGame.Current = uncivGame
-    civ1 = game.getCivilization(civ1_name)
-    civ2 = game.getCivilization(civ2_name)
-    reason = DiplomacyAutomation.INSTANCE.wantsToSignDeclarationOfFrienship_easy(civ1, civ2)
-    python_reason = [str(item) for item in reason.getSecond()]
-    pair_dict = {"result": bool(reason.getFirst()), "reason": python_reason}
-    json_data = json.dumps(pair_dict)
-    return json_data
+    if use_ai == 'civagent':  
+        return get_skills(
+            "change_closeness", civ_name_1, civ_name_2,
+            skills, skill_num, tech, production
+        )
+    elif use_ai == 'native_unciv':
+        return simulator.get_wantsToSignDeclarationOfFrienship(
+            gameinfo, civ_name_1, civ_name_2
+        )
+    else:
+        # todo write your custom ai
+        raise
 ```
 ` get_wantstosigndeclarationfriendship `这是一个确定双方是否可以签署友谊声明的函数。在游戏中，做出一个决策请求，请求中的信息包含游戏存档信息`gameinfo`、文明1的名称`civ1_name`和文明2的名称`civ2_name`。函数体调用Jar包中的行为树决策，最终返回一个json文件，其中包含决策结果和决策原因。
 

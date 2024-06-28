@@ -3,6 +3,7 @@ import logging
 import os
 import time
 import yaml
+
 current_file_path = os.path.realpath(__file__)
 config_path = os.path.normpath(os.path.join(os.path.dirname(current_file_path), '..', 'scripts', 'tasks', 'config.yaml'))
 os.environ['CIVAGENT_CONFIG_PATH'] = config_path
@@ -12,6 +13,7 @@ import civsim.simulator.simulator as simulator
 from civagent.skills import reply_trades_from_skills, use_skills, reply_declarfrienship
 from civagent.utils.skills_utils import get_skills
 from civsim import logger
+
 simulator.init_jvm()
 app = Flask(__name__)
 skills = {}
@@ -31,19 +33,32 @@ with open(config_path, 'r') as file:
     config_data = yaml.safe_load(file)
 
 use_ai = 'civagent'
+
+
 # use_ai = 'native_unciv'
 
 
 def get_canSignResearchAgreementsWith(gameinfo, civ_name_1, civ_name_2):
-    '''
-        Retrieves whether a civilization can sign research agreements with another civilization.
-        Args:
-        gameinfo: String representing game information
-        civ_name_1: Name of the first civilization
-        civ_name_2: Name of the second civilization
+    """
+        Assessing whether our civilization can sign a research agreement with the target civilization.
+        Parameters:
+        gameinfo: String
+            Representing game information.
+        civ_name_1: String
+            The name of our civilization.
+        civ_name_2: String
+            The name of the target civilization.
         Returns:
-        json_data: A JSON string containing the result and reason for being able to sign research agreements
-    '''
+            if use_ai == 'civagent':
+                String: A JSON string containing the result of being able to sign research agreements.
+            if use_ai == 'native_unciv':
+                String: A JSON string containing the result and reason for being able to sign research agreements
+        Example:
+            if use_ai == 'civagent':
+                get_canSignResearchAgreementsWith(gameinfo, rome, greece) => {"result": "false"}
+            if use_ai == 'native_unciv':
+                get_canSignResearchAgreementsWith(gameinfo, rome, greece) => {"result": "true", "reason": "Rome has a high level of trust with Greece."}
+    """
     if use_ai == 'civagent':
         return get_skills(
             "research_agreement", civ_name_1, civ_name_2,
@@ -59,15 +74,26 @@ def get_canSignResearchAgreementsWith(gameinfo, civ_name_1, civ_name_2):
 
 
 def get_wantsToSignDefensivePact(gameinfo, civ_name_1, civ_name_2):
-    '''
-        Retrieves whether a civilization wants to sign a defensive pact with another civilization.
-        Args:
-        gameinfo: String representing game information
-        civ_name_1: Name of the first civilization
-        civ_name_2: Name of the second civilization
+    """
+        Assessing whether our civilization can sign a defensive pact with the target civilization.
+        Parameters:
+        gameinfo: String
+            Representing game information.
+        civ_name_1: String
+            The name of our civilization.
+        civ_name_2: String
+            The name of the target civilization.
         Returns:
-        json_data: A JSON string containing the result and reason for wanting to sign a defensive pact
-    '''
+            if use_ai == 'civagent':
+                String: A JSON string containing the result of being able to sign defensive pact.
+            if use_ai == 'native_unciv':
+                String: A JSON string containing the result and reason for being able to sign defensive pact.
+        Example:
+            if use_ai == 'civagent':
+                get_wantsToSignDefensivePact(gameinfo, rome, greece) => {"result": "false"}
+            if use_ai == 'native_unciv':
+                get_wantsToSignDefensivePact(gameinfo, rome, greece) => {"result": "true", "reason": "Rome has a high level of trust with Greece."}
+    """
     if use_ai == 'civagent':
         return get_skills(
             "form_ally", civ_name_1, civ_name_2,
@@ -81,17 +107,30 @@ def get_wantsToSignDefensivePact(gameinfo, civ_name_1, civ_name_2):
         # todo write your custom ai
         raise
 
+
 def get_hasAtLeastMotivationToAttack(gameinfo, civ_name_1, civ_name_2, motivation=20):
-    '''
-        Retrieves whether a civilization has at least a certain motivation level to attack another civilization.
-        Args:
-        gameinfo: String representing game information
-        civ_name_1: Name of the first civilization
-        civ_name_2: Name of the second civilization
-        at_least: The minimum motivation level for the attack
+    """
+        Assessing whether a civilization has a motivation level above a certain value to determine whether to issue a declaration of peace or declare war.
+        Parameters:
+        gameinfo: String
+            Representing game information.
+        civ_name_1: String
+            The name of our civilization.
+        civ_name_2: String
+            The name of the target civilization.
+        motivation: Int
+            The minimum motivation level for the attack.The default threshold for initiating war is 20, and the threshold for peace is 10.
         Returns:
-        json_data: A JSON string containing the result and reason for having at least a certain motivation to attack
-    '''
+            if use_ai == 'civagent':
+                String: A JSON string containing the result of whether to attack or pursue peace.
+            if use_ai == 'native_unciv':
+                String: A JSON string containing the result and reason for whether to attack or pursue peace.
+        Example:
+            if use_ai == 'civagent':
+                get_hasAtLeastMotivationToAttack(gameinfo, rome, greece, 20) => {"result": "true"}
+            if use_ai == 'native_unciv':
+                get_hasAtLeastMotivationToAttack(gameinfo, rome, greece, 20) => {"result": "false", "reason": "Rome has a high level of trust with Greece."}
+    """
     if use_ai == 'civagent':
         key = "seek_peace" if motivation < 20 else "declare_war"
         return get_skills(
@@ -108,15 +147,26 @@ def get_hasAtLeastMotivationToAttack(gameinfo, civ_name_1, civ_name_2, motivatio
 
 
 def get_wantsToSignDeclarationOfFrienship(gameinfo, civ_name_1, civ_name_2):
-    '''
-        Retrieves whether a civilization wants to sign a declaration of friendship with another civilization.
-        Args:
-        gameinfo: String representing game information
-        civ_name_1: Name of the first civilization
-        civ_name_2: Name of the second civilization
+    """
+        Assessing whether our civilization can sign a declaration of friendship with the target civilization.
+        Parameters:
+        gameinfo: String
+            Representing game information.
+        civ_name_1: String
+            The name of our civilization.
+        civ_name_2: String
+            The name of the target civilization.
         Returns:
-        json_data: A JSON string containing the result and reason for the declaration of friendship
-    '''
+            if use_ai == 'civagent':
+                String: A JSON string containing the result of being able to sign a declaration of friendship.
+            if use_ai == 'native_unciv':
+                String: A JSON string containing the result and reason for being able to sign a declaration of friendship.
+        Example:
+            if use_ai == 'civagent':
+                get_wantsToSignDeclarationOfFrienship(gameinfo, rome, greece) => {"result": "false"}
+            if use_ai == 'native_unciv':
+                get_wantsToSignDeclarationOfFrienship(gameinfo, rome, greece) => {"result": "true", "reason": "Rome has a high level of trust with Greece."}
+    """
     if use_ai == 'civagent':
         return get_skills(
             "change_closeness", civ_name_1, civ_name_2,
@@ -132,14 +182,20 @@ def get_wantsToSignDeclarationOfFrienship(gameinfo, civ_name_1, civ_name_2):
 
 
 def chooseTechToResarch(gameinfo, civ_name_1, civ_name_2):
-    '''
+    """
         Chooses a technology to research for a given civilization.
-        Args:
-        gameinfo: String representing game information
-        civ1_name: Name of the civilization
+        Parameters:
+        gameinfo: String
+            Representing game information.
+        civ_name_1: String
+            The name of our civilization.
+        civ_name_2: String
+            This is a redundant parameter, the same as civ_name_1, the name of our civilization.
         Returns:
-        json_data: A JSON string containing the chosen technology to research
-    '''
+            String: A JSON string containing the chosen technology to research
+        Example:
+            chooseTechToResarch(gameinfo, rome, rome) => {"result": "Masonry"}
+    """
     if use_ai == 'civagent':
         return get_skills(
             "choose_technology", civ_name_1, civ_name_2,
@@ -155,15 +211,20 @@ def chooseTechToResarch(gameinfo, civ_name_1, civ_name_2):
 
 
 def chooseNextConstruction(gameinfo, civ_name_1, civ_name_2):
-    '''
+    """
         Chooses the next construction for a specific city within a civilization.
-        Args:
-        gameinfo: String representing game information
-        civ1_name: Name of the civilization
-        city_name: Name of the city
+        Parameters:
+        gameinfo: String
+            Representing game information.
+        civ_name_1: String
+            The name of our civilization.
+        civ_name_2: String
+            This is the name of a city belonging to our civilization.
         Returns:
-        json_data: A JSON string containing the chosen construction for the city
-    '''
+            String: A JSON string containing the chosen construction for the city
+        Example:
+            chooseNextConstruction(gameinfo, rome, rome) => {"result": "worker"}
+    """
     if use_ai == 'civagent':
         return get_skills(
             "production_priority", civ_name_1, civ_name_2,
@@ -177,16 +238,28 @@ def chooseNextConstruction(gameinfo, civ_name_1, civ_name_2):
         # todo write your custom ai
         raise
 
+
 def get_commonenemy(gameinfo, civ_name_1, civ_name_2):
-    '''
-        Initiates a joint attack against a common enemy.
-        Args:
-        gameinfo: String representing game information
-        civ_name_1: Name of the first civilization
-        civ_name_2: Name of the second civilization
+    """
+        Our civilization is considering whether to invite other civilizations to launch a joint attack against another civilization.
+        Parameters:
+        gameinfo: String
+            Representing game information.
+        civ_name_1: String
+            The name of our civilization.
+        civ_name_2: String
+            This is a redundant parameter, the same as civ_name_1, the name of our civilization.
         Returns:
-        json_data: A JSON string containing the result of the joint attack initiation
-    '''
+            if use_ai == 'civagent':
+                String: A JSON string including the decision to launch a joint attack, cooperative civilizations, and the target civilization for the attack.
+            if use_ai == 'native_unciv':
+                String: It's not part of the original game logic, so we default to returning false.
+        Example:
+            if use_ai == 'civagent':
+                get_commonenemy(gameinfo, rome, rome) => {"result": "false", "to_civ": "greece", "enemy_civ": "egypt"}
+            if use_ai == 'native_unciv':
+                get_commonenemy(gameinfo, rome, rome) => {"result": "false"}
+    """
     if use_ai == 'civagent':
         return get_skills(
             "common_enemy", civ_name_1, civ_name_2,
@@ -200,15 +273,26 @@ def get_commonenemy(gameinfo, civ_name_1, civ_name_2):
 
 
 def get_buyluxury(gameinfo, civ_name_1, civ_name_2):
-    '''
-        Initiates a trade for luxury goods between two civilizations.
-        Args:
-        gameinfo: String representing game information
-        civ_name_1: Name of the first civilization
-        civ_name_2: Name of the second civilization
+    """
+        Our civilization is making a luxury goods request to the target civilization.
+        Parameters:
+        gameinfo: String
+            Representing game information.
+        civ_name_1: String
+            The name of our civilization.
+        civ_name_2: String
+            The name of the target civilization.
         Returns:
-        json_data: A JSON string containing the result of the luxury goods trade initiation
-    '''
+            if use_ai == 'civagent':
+                String: A JSON string containing the result of luxury goods trade request, amount of gold required, and the luxury goods involved.
+            if use_ai == 'native_unciv':
+                String: It's not part of the original game logic, so we default to returning false.
+        Example:
+            if use_ai == 'civagent':
+                get_buyluxury(gameinfo, rome, greece) => {"result": "false", "gold": 100, "luxury": "silk"}
+            if use_ai == 'native_unciv':
+                get_buyluxury(gameinfo, rome, greece) => {"result": "false"}
+    """
     if use_ai == 'civagent':
         return get_skills(
             "common_ally", civ_name_1, civ_name_2,
@@ -222,15 +306,26 @@ def get_buyluxury(gameinfo, civ_name_1, civ_name_2):
 
 
 def reply_trades(gameinfo, civ_name_1, civ_name_2):
-    '''
-        Retrieves the trade acceptability between two civilizations.
-        Args:
-        gameinfo: String representing game information
-        civ_name_1: Name of the first civilization
-        civ_name_2: Name of the second civilization
+    """
+        Our civilization needs to respond to the trade request initiated by the target civilization
+        Parameters:
+        gameinfo: String
+            Representing game information.
+        civ_name_1: String
+            The name of our civilization.
+        civ_name_2: String
+            The name of the target civilization.
         Returns:
-        json_data: A JSON string containing the result and reason for the trade acceptability
-    '''
+            if use_ai == 'civagent':
+                String: A JSON string containing the response result to the trade request.
+            if use_ai == 'native_unciv':
+                String: A JSON string containing the response result to the trade request, as well as the reasons.
+        Example:
+            if use_ai == 'civagent':
+                reply_trades(gameinfo, rome, greece) => {"result": "yes"}
+            if use_ai == 'native_unciv':
+                reply_trades(gameinfo, rome, greece) => {"result": "yes", "reason": "I need more resources"}
+    """
     if use_ai == 'civagent':
         return reply_trades_from_skills(
             gameinfo, civ_name_1, civ_name_2, config_data
@@ -243,16 +338,22 @@ def reply_trades(gameinfo, civ_name_1, civ_name_2):
         # todo write your custom ai
         raise
 
+
 def get_getEnemyCitiesByPriority(gameinfo, civ_name_1, id):
-    '''
-       Retrieves enemy cities by priority for a given civilization and unit ID.
-       Args:
-       gameinfo: String representing game information
-       civ_name_1: Name of the civilization
-       id: ID of the unit
+    """
+        For our civilization's units, assess the priority of the enemy city and return its coordinates.
+        Parameters:
+        gameinfo: String
+            Representing game information.
+        civ_name_1: String
+            The name of our civilization.
+        id: String
+            ID of the unit
        Returns:
-       str: String representation of the positions of enemy cities by priority（x,y）
-    '''
+            String: The returned information is the coordinates of the city in the format (x, y).
+        Example:
+            get_getEnemyCitiesByPriority(gameinfo, rome, 1) => "(1, 2)"
+    """
     if use_ai == 'civagent':
         return simulator.get_getEnemyCitiesByPriority(
             gameinfo, civ_name_1, id
@@ -267,15 +368,26 @@ def get_getEnemyCitiesByPriority(gameinfo, civ_name_1, id):
 
 
 def replyDeclarFrienship(gameinfo, civ_name_1, civ_name_2):
-    '''
-        Responds to a declaration of friendship between two civilizations.
-        Args:
-        gameinfo: String representing game information
-        civ_name_1: Name of the first civilization
-        civ_name_2: Name of the second civilization
+    """
+        Our civilization needs to respond to the declaration of friendship initiated by the target civilization
+        Parameters:
+        gameinfo: String
+            Representing game information.
+        civ_name_1: String
+            The name of our civilization.
+        civ_name_2: String
+            The name of the target civilization.
         Returns:
-        json_data: A JSON string containing the response to the declaration of friendship
-        '''
+            if use_ai == 'civagent':
+                String: A JSON string containing the response to the declaration of friendship.
+            if use_ai == 'native_unciv':
+                String: A JSON string containing the response and reason to the declaration of friendship.
+        Example:
+            if use_ai == 'civagent':
+                replyDeclarFrienship(gameinfo, rome, greece) => {"result": "yes"}
+            if use_ai == 'native_unciv':
+                replyDeclarFrienship(gameinfo, rome, greece) => {"result": "yes", "reason":"Rome has a high level of trust with Greece"}
+    """
     if use_ai == 'civagent':
         return reply_declarfrienship(
             gameinfo, civ_name_1, civ_name_2, config_data
@@ -347,7 +459,7 @@ def wantsToDeclarationOfFrienship():
 @app.route('/getEnemyCitiesByPriority', methods=['POST'])
 def getEnemyCitiesByPriority():
     data = request.json
-    result =get_getEnemyCitiesByPriority(data["gameinfo"], data["civ1"], data["id"])
+    result = get_getEnemyCitiesByPriority(data["gameinfo"], data["civ1"], data["id"])
     return result
 
 

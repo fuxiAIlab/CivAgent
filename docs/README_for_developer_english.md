@@ -261,6 +261,8 @@ The game AI server is implemented using Flask, so you need to start the Flask se
 ```
 cd deployment
 python flask_server.py
+
+Default port : http://127.0.0.1:2337
 ```
 If you have achieved this, congratulations, you have successfully linked the decision-making in the game to the local server. At this point, you can begin experiencing our benchmark.
 ### Step 5. Decision Visualization
@@ -273,29 +275,62 @@ If you want to customize your own diplomatic decision module, please continue re
 
 In the existing game decision server, the prototype of the decision module is the existing game behavior tree. If you are a developer or researcher who would like to further research and develop foreign policy decisions, we provide examples for reference.
 
-An example:
 
+In the game file `DebugUtils.kt`, we have provided a switch called `NEED_GameInfo` to control whether the complete game save file is passed to the server. If you want to pass the complete game save file information, you need to set it to `True`; otherwise, set it to `False`. If set to `False`, the game save information will be an empty string.
+
+The existing server provides two types of AI services:
+```
+use_ai == 'civagent'  # Making decisions using LLM
+use_ai == 'native_unciv'  # Making decisions using the native game behavior tree
+Note: When use_ai == 'native_unciv', the value of NEED_GameInfo should be set to True.
+```
+In the current AI server, the following function will be affected by this switch, while the rest will receive the complete game save by default:
 ```python
-def get_wantsToSignDeclarationOfFrienship(gameinfo, civ1_name, civ2_name):
+get_canSignResearchAgreementsWith()
+get_wantsToSignDefensivePact()
+get_hasAtLeastMotivationToAttack()
+get_wantsToSignDeclarationOfFrienship()
+chooseTechToResarch()
+chooseNextConstruction()
+get_hasAtLeastMotivationToAttack()
+get_commonenemy()
+get_buyluxury()
+```
+You can define your own diplomatic decision-making function, ensuring that its parameters and return values remain consistent with the existing functions. An example of the function is as follows:
+```python
+def get_wantsToSignDeclarationOfFrienship(gameinfo, civ_name_1, civ_name_2):
     '''
-        Retrieves whether a civilization wants to sign a declaration of friendship with another civilization.
-        Args:
-        gameinfo: String representing game information
-        civ1_name: Name of the first civilization
-        civ2_name: Name of the second civilization
+        Assessing whether our civilization can sign a declaration of friendship with the target civilization.
+        parameters:
+        gameinfo: String
+            Representing game information.
+        civ_name_1: String
+            The name of our civilization.
+        civ_name_2: String
+            The name of the target civilization.
         Returns:
-        json_data: A JSON string containing the result and reason for the declaration of friendship
+            if use_ai == 'civagent':
+                String: A JSON string containing the result of being able to sign a declaration of friendship.
+            if use_ai == 'native_unciv':
+                String: A JSON string containing the result and reason for being able to sign a declaration of friendship.
+        Example:
+            if use_ai == 'civagent':
+                get_wantsToSignDeclarationOfFrienship(gameinfo, rome, greece) => {"result": "false"}
+            if use_ai == 'native_unciv':
+                get_wantsToSignDeclarationOfFrienship(gameinfo, rome, greece) => {"result": "true", "reason": "Rome has a high level of trust with Greece."}
     '''
-    game = uncivFiles.gameInfoFromString_easy(gameinfo)
-    uncivGame.setGameInfo(game)
-    uncivGame.Current = uncivGame
-    civ1 = game.getCivilization(civ1_name)
-    civ2 = game.getCivilization(civ2_name)
-    reason = DiplomacyAutomation.INSTANCE.wantsToSignDeclarationOfFrienship_easy(civ1, civ2)
-    python_reason = [str(item) for item in reason.getSecond()]
-    pair_dict = {"result": bool(reason.getFirst()), "reason": python_reason}
-    json_data = json.dumps(pair_dict)
-    return json_data
+    if use_ai == 'civagent':
+        return get_skills(
+            "change_closeness", civ_name_1, civ_name_2,
+            skills, skill_num, tech, production
+        )
+    elif use_ai == 'native_unciv':
+        return simulator.get_wantsToSignDeclarationOfFrienship(
+            gameinfo, civ_name_1, civ_name_2
+        )
+    else:
+        # todo write your custom ai
+        raise
 ```
 `get_wantsToSignDeclarationOfFrienship`This is a function to determine whether the two parties can sign a declaration of friendship. In the game, a decision request is made, and the information in the request contains the game archive information`gameinfo`, the name of Civilization 1`civ1_name`, and the name of Civilization 2`civ2_name`. The function body calls the behavior tree decision in the Jar package, and finally returns a json file containing the decision result and the reason for the decision.
 

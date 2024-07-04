@@ -127,11 +127,12 @@ def use_skills(gameinfo, civ_name, skills, skill_num, tech, production, config_d
         model=model, force_json=False, decision=True, workflow=False
     )
     logger.debug(f"{robot_name} choose production {production_decision}")
-    tech[robot_name] = tech_decision["decision"]
-    production[robot_name] = {}
+    tech[robot_name.capitalize()] = tech_decision["decision"]
+    production[robot_name.capitalize()] = {}
     if production_decision is not None:
         for city_name in production_decision:
-            production[robot_name][city_name] = production_decision[city_name]
+            if production_decision[city_name] != 'AntiAircraft Gun':
+                production[robot_name.capitalize()][city_name] = production_decision[city_name]
     pair_dict = {'result': 'sueccess'}
     json_data = json.dumps(pair_dict)
     return json_data

@@ -237,11 +237,11 @@ def get_skills(skill_name, civ1_name, civ2_name, skills, skill_num, tech, produc
     if civ_name not in skill_num:
         skill_num[civ_name] = 0
     if skill_name == 'production_priority':
-        if civ1_name not in production:
+        if civ1_name not in production and civ1_name.lower() not in production:
             pair_dict = {'result': ''}
             json_data = json.dumps(pair_dict)
         else:
-            if civ2_name not in production[civ1_name]:
+            if civ2_name not in production[civ1_name] and civ2_name.lower() not in production[civ1_name]:
                 pair_dict = {'result': ''}
                 json_data = json.dumps(pair_dict)
             else:
@@ -249,7 +249,7 @@ def get_skills(skill_name, civ1_name, civ2_name, skills, skill_num, tech, produc
                 json_data = json.dumps(pair_dict)
         return json_data
     elif skill_name == 'choose_technology':
-        if civ1_name not in tech:
+        if civ1_name not in tech and civ1_name.lower() not in tech:
             pair_dict = {'result': ''}
             json_data = json.dumps(pair_dict)
         else:

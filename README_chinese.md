@@ -12,7 +12,7 @@ Native Unciv: https://github.com/yairm210/Unciv
 
 Unciv Wiki: https://civilization.fandom.com/wiki/Unciv
 
-Unciv We Used (source code): https://github.com/asdqsczser/Unciv/tree/release/fuxi_ver
+Unciv We Used (source code): https://github.com/asdqsczser/Unciv/tree/release/release
 
 游戏客户端下载(开发者版本，无Discord聊天功能): [Mac客户端下载地址](https://drive.google.com/file/d/1Ohx6pvcdZbVzte0cAaXPHEAIRpJ2obqK/view?usp=sharing)   [Windows客户端下载地址](https://drive.google.com/file/d/1ap99uZnhcpgIkDgJKAaPk277bTBi34Ag/view?usp=sharing)
 
@@ -25,7 +25,7 @@ Appendix: https://github.com/fuxiAIlab/CivAgent/blob/main/paper_appendix.pdf
 YouTube: https://www.youtube.com/playlist?list=PL9G00-od8ezYNblsqMca7urrLoHSZ7Vs3
 
 ## 新闻
-![new](/assets/new.gif) **06/20/2024**: 论文Benchmark复现代码开源. 面向非开发者的游玩版本预计在7月初发布. 
+![new](/assets/new.gif) **06/20/2024**: 论文Benchmark复现代码开源. 面向非开发者的游玩版本预计在7月发布. 
 
 **06/09/2024**: 论文投稿NeurIPS 2024 Track Datasets and Benchmarks, [Under Review](https://openreview.net/forum?id=AuT65qKLrr).
 

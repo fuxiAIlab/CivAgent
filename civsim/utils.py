@@ -52,7 +52,7 @@ def check_and_bind_gameid(text):
     pattern = r'\b[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\b'
     result = re.findall(pattern, text)
     if len(result) > 0 and len(result[0]) == 36:
-        logger.info(f"utils.check_and_bind_gameid get legal game_id {text}")
+        # logger.info(f"utils.check_and_bind_gameid get legal game_id {text}")
         logger = logger.bind(**{"game_id": result[0]})
         return result[0]
     else:
@@ -133,7 +133,7 @@ def get_civ_name(save_data, civ_index=None):
     if len(civs) > civ_index:
         return civs[civ_index].get('civName', '').lower()
     else:
-        logger.debug(f"utils.——_civ_name get illegal civ_index {civ_index} of civs {civs}")
+        logger.error(f"get illegal civ_index {civ_index} of civs {civs}")
         return None
 
 
@@ -154,8 +154,8 @@ def get_civ_index(save_data, civ_name=''):
         else:
             return 1
     else:
-        logger.debug(
-            f"utils.get_civ_index get civ_name: {civ_name}, civ_names:{[x['civName'].lower() for x in civs]}"
+        logger.error(
+            f"get invalid civ_name: {civ_name}, civ_names:{[x['civName'].lower() for x in civs]}"
         )
         return None
 
@@ -233,6 +233,7 @@ def open_borders(save_data, civ_name_1, civ_name_2, duration=50):
             "text": "[{}] opens borders to {}!".format(civ_name_1, civ_name_2),
             "icons": ["OtherIcons/Pillage", "England"]
         })
+        # logger.debug(f"open_borders : { save_data['civilizations'][ind_1]['diplomacy'][civ_name_2]}")
         if 'notifications' in save_data['civilizations'][1]:
             [notifications.append(y) for y in save_data['civilizations'][1]['notifications']]
         save_data['civilizations'][1]['notifications'] = notifications
@@ -282,6 +283,7 @@ def research_agreement(save_data, civ_name_1, civ_name_2):
         save_data['civilizations'][ind_1]['diplomacy'][civ_name_2]['flagsCountdown']["ResearchAgreement"] = 25
         save_data['civilizations'][ind_2]['diplomacy'][civ_name_1]['flagsCountdown']["ResearchAgreement"] = 25
         notifications = []
+        # logger.debug(f"research_agreement : { save_data['civilizations'][ind_1]['diplomacy'][civ_name_2]['trades']}")
         notifications.append({
             "category": "Diplomacy",
             "text": "[{}] has signed a Research Agreement with {}!".format(civ_name_1, civ_name_2),
@@ -343,8 +345,11 @@ def add_common_resource(save_data, civ_name_1, civ_name_2, civ1_resource_dict, c
     civ1_luxury_resource_dict = {}
     civ2_luxury_resource_dict = {}
     civs_name = get_all_civs(save_data)
+    ind_1 = get_civ_index(save_data, civ_name_1)
+    ind_2 = get_civ_index(save_data, civ_name_2)
+    logger.info(f'civ1_resource_dict :{civ1_resource_dict}, civ2_resource_dict :{civ2_resource_dict}')
     for key, value in civ1_resource_dict.items():
-        if key.capitalize() in action_space.luxury_space and key in action_space.resource_space and key.low() in ['gold', 'gold per turn']:
+        if key.capitalize() in action_space.luxury_space or key.capitalize() in action_space.resource_space or key.lower() in ['gold', 'gold per turn']:
             civ1_luxury_resource_dict[key] = value
         elif key == 'Defensive Pact':
             save_data = form_mutual_defense(save_data, civ_name_1, civ_name_2)
@@ -352,20 +357,19 @@ def add_common_resource(save_data, civ_name_1, civ_name_2, civ1_resource_dict, c
             save_data = research_agreement(save_data, civ_name_1, civ_name_2)
         elif key == 'Open Borders':
             save_data = open_borders(save_data, civ_name_1, civ_name_2)
-        elif key in civs_name:
-            save_data = declare_war(save_data, civ_name_1, key)
+        elif 'War' in key:
+            save_data = declare_war(save_data, civ_name_1, key[10:])
         else:
             save_data = annex_city(save_data, civ_name_2, civ_name_1, key)
     for key, value in civ2_resource_dict.items():
-        if key.capitalize() in action_space.luxury_space and key in action_space.resource_space and key.low() in ['gold', 'gold per turn']:
+        if key.capitalize() in action_space.luxury_space or key.capitalize() in action_space.resource_space or key.lower() in ['gold', 'gold per turn']:
             civ2_luxury_resource_dict[key] = value
-        elif key in civs_name:
-            save_data = declare_war(save_data, civ_name_1, key)
+        elif 'War' in key:
+            save_data = declare_war(save_data, civ_name_1, key[10:])
         elif key == 'Defensive Pact' or key == 'Research Agreement' or key == 'Open Borders' or key in civs_name:
             continue
         else:
             save_data = annex_city(save_data, civ_name_1, civ_name_2, key)
-
     return add_luxury_resource(save_data, civ_name_1, civ_name_2, civ1_luxury_resource_dict, civ2_luxury_resource_dict)
 
 
@@ -391,7 +395,7 @@ def add_luxury_resource(save_data, civ_name_1, civ_name_2, civ1_resource_dict, c
         civ2_luxury_resource_offer['ourOffers'] = []
 
     for key, value in civ1_resource_dict.items():
-        if value == 'Any':
+        if value == 'Any' or value == 'one':
             value = 1
         if key.capitalize() in action_space.luxury_space:
             civ1_luxury_resource_offer['ourOffers'].append({
@@ -420,20 +424,34 @@ def add_luxury_resource(save_data, civ_name_1, civ_name_2, civ1_resource_dict, c
                 "amount": int(value)
             })
         elif key == 'Gold per turn':
-            civ1_luxury_resource_offer['ourOffers'].append({
-                "class": "com.unciv.logic.trade.TradeOffer",
-                "name": "Gold per turn",
-                "type": "Gold_Per_Turn",
-                "amount": int(value),
-                "duration": 24
-            })
-            civ2_luxury_resource_offer['theirOffers'].append({
-                "class": "com.unciv.logic.trade.TradeOffer",
-                "name": "Gold per turn",
-                "type": "Gold_Per_Turn",
-                "amount": int(value),
-                "duration": 24
-            })
+            if value == 1:
+                civ1_luxury_resource_offer['ourOffers'].append({
+                    "class": "com.unciv.logic.trade.TradeOffer",
+                    "name": "Gold per turn",
+                    "type": "Gold_Per_Turn",
+                    "duration": 24
+                })
+                civ2_luxury_resource_offer['theirOffers'].append({
+                    "class": "com.unciv.logic.trade.TradeOffer",
+                    "name": "Gold per turn",
+                    "type": "Gold_Per_Turn",
+                    "duration": 24
+                })
+            else:
+                civ1_luxury_resource_offer['ourOffers'].append({
+                    "class": "com.unciv.logic.trade.TradeOffer",
+                    "name": "Gold per turn",
+                    "type": "Gold_Per_Turn",
+                    "amount": int(value),
+                    "duration": 24
+                })
+                civ2_luxury_resource_offer['theirOffers'].append({
+                    "class": "com.unciv.logic.trade.TradeOffer",
+                    "name": "Gold per turn",
+                    "type": "Gold_Per_Turn",
+                    "amount": int(value),
+                    "duration": 24
+                })
         elif key in action_space.resource_space:
             civ1_luxury_resource_offer['ourOffers'].append({
                 "class": "com.unciv.logic.trade.TradeOffer",
@@ -454,7 +472,7 @@ def add_luxury_resource(save_data, civ_name_1, civ_name_2, civ1_resource_dict, c
             pass
 
     for key, value in civ2_resource_dict.items():
-        if value == 'Any':
+        if value == 'Any' or value == 'one':
             value = 1
         if key in action_space.luxury_space or key.capitalize() in action_space.luxury_space:
             civ2_luxury_resource_offer['ourOffers'].append({
@@ -529,6 +547,7 @@ def add_luxury_resource(save_data, civ_name_1, civ_name_2, civ1_resource_dict, c
             "text": "[{}]  has successfully completed business with {}!".format(civ_name_1, civ_name_2),
             "icons": ["OtherIcons/Pillage", "England"]
         })
+        logger.info(f'add_luxury_resource: civ1_luxury_resource_offer :{civ1_luxury_resource_offer}, civ2_luxury_resource_offer :{civ2_luxury_resource_offer}')
         [notifications.append(y) for y in save_data['civilizations'][ind_player].get('notifications', [])]
         save_data['civilizations'][ind_player]['notifications'] = notifications
     return save_data
@@ -546,7 +565,7 @@ def trade_offer(save_data, civ_name_1, civ_name_2, civ1_resource_dict, civ2_reso
         civ2_luxury_resource_offer['ourOffers'] = []
 
     for key, value in civ1_resource_dict.items():
-        if value == 'Any':
+        if value == 'Any' or value == 'one':
             value = 1
         if key in action_space.luxury_space:
             # todo processing Any
@@ -582,7 +601,7 @@ def trade_offer(save_data, civ_name_1, civ_name_2, civ1_resource_dict, civ2_reso
                 "duration": 25
             })
     for key, value in civ2_resource_dict.items():
-        if value == 'Any':
+        if value == 'Any' or value == 'one':
             value = 1
         if key in action_space.luxury_space:
             civ2_luxury_resource_offer['ourOffers'].append({
@@ -616,6 +635,7 @@ def trade_offer(save_data, civ_name_1, civ_name_2, civ1_resource_dict, civ2_reso
             })
     civ2_luxury_resource_offer = {k: v for k, v in civ2_luxury_resource_offer.items() if v != []}
     civ2_offer = {"requestingCiv": civ_name_1, "trade": civ2_luxury_resource_offer}
+    logger.info(f'trade_offer: civ2_luxury_resource_offer :{civ2_luxury_resource_offer}')
     if len(diplomacy_info) > 0:
         if len(trades) > 0:
             save_data['civilizations'][ind_2]['tradeRequests'].append(civ2_offer)
@@ -862,13 +882,13 @@ def get_decision_result(intention, req, save_data={}, use_random=True):
     if not use_random:
         if intention in action_space.decision_space and "func" in action_space.decision_space[key]:
             try:
-                # todo Diplomacy_flag True?
-                simulator_res_old = simulator.run(save_data, Preturns=20, Diplomacy_flag=True, workerAuto=False)
+                # todo diplomacy_flag True?
+                simulator_res_old = simulator.run(save_data, turns=20, diplomacy_flag=True, workerAuto=False)
                 simulator_res_old_stat = get_stats(simulator_res_old, get_civ_index(simulator_res_old, req['civ_name']))
                 param = [req[x] for x in action_space.decision_space[key]['param']]
                 decision_gm_fn = action_space.decision_space[key]['func']('yes')(*param)
                 save_data_new = decision_gm_fn(save_data)
-                simulator_res_new = simulator.run(save_data_new, Preturns=20, Diplomacy_flag=True, workerAuto=False)
+                simulator_res_new = simulator.run(save_data_new, turns=20, diplomacy_flag=True, workerAuto=False)
                 simulator_res_new_stat = get_stats(simulator_res_new, get_civ_index(simulator_res_new, req['civ_name']))
                 # todo In addition to 'yes' and 'no'
                 if simulator_res_new_stat['civ_strength'] > simulator_res_old_stat['civ_strength']:

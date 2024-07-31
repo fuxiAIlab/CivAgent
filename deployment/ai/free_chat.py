@@ -122,14 +122,20 @@ def process(data: ChatMemory):
                 )
         else:
             try:
-                agent = civagent.CivAgent(from_name, robot_name, "", "", save_data, gameid)
+                agent = civagent.CivAgent(
+                    from_name, robot_name, "", "", save_data, gameid
+                )
                 agent.init()
                 agent.update(save_data)
                 req = save2req(save_data, agent, text, from_name, robot_name)
                 logger.info(f'save2req: {req}')
-                intention_result, _ = civagent.CivAgent.intention_understanding(req, only_chat=is_bootstrap)
+                intention_result, _ = civagent.CivAgent.intention_understanding(
+                    req, only_chat=is_bootstrap
+                )
                 logger.info(f'intention_result: {intention_result}')
-                response_debug, _, decision_gm_fn = civagent.CivAgent.response(req, intention_result, save_data, use_random=False)
+                response_debug, _, decision_gm_fn = civagent.CivAgent.response(
+                    req, intention_result, save_data, use_random=False
+                )
                 response = response_debug['response']
                 # comment: Require users to initiate transactions instead of directly modifying the save file
                 #

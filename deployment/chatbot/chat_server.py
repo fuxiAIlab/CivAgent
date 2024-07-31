@@ -91,7 +91,8 @@ def admin_logic(
             prev_team_id = chat_manager.get_teamid(platform)
             if gameid != prev_gameid or (prev_team_id is None or len(prev_team_id) < 2):
                 prev_team_id = chat_manager.create_team(
-                    team_name=admin_reply_make('team_name', gameid2info), uids=[from_name, *civ_robots], platform=platform
+                    team_name=admin_reply_make('team_name', gameid2info),
+                    uids=[from_name, *civ_robots], platform=platform
                 )
 
             say_hello(
@@ -157,7 +158,10 @@ def reply(data, admin_name, platform):
     # previous gameid are not opened
     if not game_exist:
         if robot_name == admin_name:
-            admin_logic(chat_manager, admin_name, from_name, text, gameinfo, perv_gameid, platform)
+            admin_logic(
+                chat_manager, admin_name, from_name,
+                text, gameinfo, perv_gameid, platform
+            )
         else:
             chat_manager.send_msg(
                 text=admin_reply_make('search_bot', gameid2info),
@@ -169,7 +173,10 @@ def reply(data, admin_name, platform):
         gameid = utils.check_and_bind_gameid(text)
         if robot_name == admin_name and gameid:
             # switch to new gameid
-            admin_logic(chat_manager, admin_name, from_name, text, gameinfo, perv_gameid, platform)
+            admin_logic(
+                chat_manager, admin_name, from_name,
+                text, gameinfo, perv_gameid, platform
+            )
         else:
             chat_manager.game_id = perv_gameid if gameinfo else ''
             gameid = chat_manager.game_id
@@ -189,7 +196,7 @@ def reply(data, admin_name, platform):
             # )
             if robot_name == admin_name:
                 chat_manager.send_msg(
-                    text=admin_reply_make('analysis_gm', gameid2info).replace('\n', '').replace('\t', ''),
+                    text=admin_reply_make('analysis_gm', gameid2info),
                     sender=admin_name,
                     receiver=from_name,
                     platform=platform
@@ -233,7 +240,6 @@ def test_msg_push_feishu():
     else:
         return {'data': 'Unsupported request method'}
 
-
 @app.route('/open-apis/fuxi-unciv/SendMsg', methods=['POST'])
 def test_send_msg():
     if request.method == 'POST':
@@ -241,6 +247,8 @@ def test_send_msg():
             data = request.get_json()
             logger.debug(f'Get request.post {data}.')
             user_id, is_group = str(data['userId']), data['isGroup']
+            if user_id not in chat_managers and user_id not in ChatManager.robot_names:
+                chat_managers[user_id] = ChatManager(user_id)
             chat_manager: ChatManager = chat_managers[user_id]
             if is_group:
                 chatmessage = chat_manager.send_group_msg(

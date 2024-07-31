@@ -43,9 +43,8 @@ def save2req(save_data, agent, text, speaker_civ_name, receiver_civ_name):
     tmp_req = copy.copy(default_req)
     civ_names = utils.get_all_civs(save_data)
     speaker_ind = utils.get_civ_index(save_data, speaker_civ_name)
-    # receiver_civ_name = robot2civ[robot_name]
     receiver_ind = utils.get_civ_index(save_data, receiver_civ_name)
-    # When testing, avoid speaking and receiver being the same, temporary handle
+    # todo When testing, avoid speaking and receiver being the same, temporary handle
     if speaker_ind == receiver_ind:
         speaker_ind = (speaker_ind + 1) % len(civ_names)
     speaker_civ_name = utils.get_civ_name(save_data, speaker_ind)

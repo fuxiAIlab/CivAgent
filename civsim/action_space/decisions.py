@@ -291,6 +291,30 @@ decision_reason_simulate_space = {
             civ2_resource_dict=civ2_resource_dict
         )
     },
+    'propose_common_trade': {
+        "reason": ["ask_for_object_yes_satisfied_with_value"],
+        "param": ["civ_name_1", "civ_name_2", "civ1_resource_dict", "civ2_resource_dict"],
+        "func": lambda civ_name_1, civ_name_2, civ1_resource_dict, civ2_resource_dict: partial(
+            simulator.run_getTradeAcceptability,
+            civ_name_1=civ_name_1,
+            civ_name_2=civ_name_2,
+            civ1_resource_dict=civ1_resource_dict,
+            civ2_resource_dict=civ2_resource_dict
+        )
+    },
+    'propose_common_trade': {
+        "reason": ["ask_for_object_no_too_many_cities_to_trade", "ask_for_object_no_value_diminishes",
+                   "ask_for_object_no_unforgivable_relationship", "ask_for_object_no_defense_treaty_not_close",
+                   "ask_for_object_no_value_greatly_diminished", "ask_for_object_no_hostile_relationship"],
+        "param": ["civ_name_1", "civ_name_2", "civ1_resource_dict", "civ2_resource_dict"],
+        "func": lambda civ_name_1, civ_name_2, civ1_resource_dict, civ2_resource_dict: partial(
+            simulator.run_getTradeAcceptability,
+            civ_name_1=civ_name_1,
+            civ_name_2=civ_name_2,
+            civ1_resource_dict=civ1_resource_dict,
+            civ2_resource_dict=civ2_resource_dict
+        )
+    },
     'research_agreement_yes': {
         "reason": ["research_agreement_yes_can_initiate_research_agreements",
                    "research_agreement_yes_can_all_pay_for_it"],

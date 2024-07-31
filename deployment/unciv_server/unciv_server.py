@@ -107,7 +107,15 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
                 mq.set(game_id, info, expiration_time=60 * 10)
                 logger.info(f'Set {game_id} : {info} in redis.')
                 # event trigger: next_turn
-                mq.xadd(game_id, {"game_id": game_id, "type": "next_turn", "turns": turns})
+                mq.xadd(
+                    game_id,
+                    {
+                        "game_id": game_id,
+                        "type": "next_turn",
+                        "turns": turns,
+                        "addTime": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    }
+                )
 
     def write_to_log_file(self, path, log_entry):
         # Create timestamp and add it as prefix to log_entry

@@ -45,9 +45,12 @@ class Search:
                 if intention in intention_space:
                     if intention == 'chat' or intention == 'nonsense':
                         return None
-                    elif intention == 'propose_trade':  # It's quite complex; the results identified by the LLM may not necessarily be barter exchanges, they could also be exchanges of one intention for goods, such as offering 300 gold in demand for an alliance.
+                    elif intention == 'propose_trade':
+                        # It's quite complex; the results identified by the LLM may not necessarily be barter exchanges,
+                        # they could also be exchanges of one intention for goods, such as offering 300 gold in demand for an alliance.
                         pass
-                    else:  # Intention refers to the desired action, and one might offer some items themselves.
+                    else:
+                        # Intention refers to the desired action, and one might offer some items themselves.
                         if intention == 'seek_peace':
                             operations.append({'action': 'seek_peace', 'paras': [civ_name_1, civ_name_2]})
                         else:
@@ -97,7 +100,7 @@ class Search:
     @staticmethod
     def pose_intervention(save_data, operations, civ_name_self, civ_name_opp):
         keys = ['culture_strength', 'tech_strength', 'army_strength', 'civ_strength']
-        simulator_old = simulator.run(save_data, Preturns=20, Diplomacy_flag=False, workerAuto=False)
+        simulator_old = simulator.run(save_data, turns=20, diplomacy_flag=False, workerAuto=False)
         old_val = utils.get_stats(simulator_old, utils.get_civ_index(simulator_old, civ_name_self))
         old_val_opp = utils.get_stats(simulator_old, utils.get_civ_index(simulator_old, civ_name_opp))
         selected_old_val = {key: value for key, value in old_val.items() if key in keys}
@@ -107,7 +110,7 @@ class Search:
         save_data_new = deepcopy(save_data)
         for operation in operations:
             save_data_new = gm_command_space[operation['action']]['func'](*operation['paras'])(save_data_new)
-        simulator_new = simulator.run(save_data_new, Preturns=20, Diplomacy_flag=False, workerAuto=False)
+        simulator_new = simulator.run(save_data_new, turns=20, diplomacy_flag=False, workerAuto=False)
         new_val = utils.get_stats(simulator_new, utils.get_civ_index(simulator_new, civ_name_self))
         new_val_opp = utils.get_stats(simulator_new, utils.get_civ_index(simulator_new, civ_name_opp))
         selected_new_val = {key: value for key, value in new_val.items() if key in keys}
@@ -150,7 +153,8 @@ class Search:
     def in_border(self, state):
         if self.agent_role == 'seller':
             for i in range(len(state['offer'])):
-                # if state['offer'][i] < self.init_state['offer'][i] // 2 or state['offer'][i] > self.init_state['offer'][i] * 2:
+                # if state['offer'][i] < self.init_state['offer'][i] // 2
+                # or state['offer'][i] > self.init_state['offer'][i] * 2:
                 if state['offer'][i] > self.opp_bottom[i]['amount']:
                     return False
         else:
@@ -162,12 +166,14 @@ class Search:
     # Seek transactions that are solely beneficial to oneself.
     def get_next_states(self, state):
         next_states = []
-        if self.agent_role == 'seller':  # seller Search upwards from the initial proposal.
+        # seller Search upwards from the initial proposal.
+        if self.agent_role == 'seller':
             # Demand more from the other party.
             offer_content = state['offer']
             for i in range(len(offer_content)):
                 next_state = deepcopy(state)
-                step = max(int(self.opp_bottom[i]['amount'] * 0.1), 1)  # max(int(0.1 * self.init_state['offer'][i]), 1)
+                # max(int(0.1 * self.init_state['offer'][i]), 1)
+                step = max(int(self.opp_bottom[i]['amount'] * 0.1), 1)
                 next_state['offer'][i] = max(1, offer_content[i] + step)
                 next_states.append(deepcopy(next_state))
         else:  # buyer Search downwards from the highest value.
@@ -185,8 +191,10 @@ class Search:
     @staticmethod
     def get_next_states_divide(left_state, right_state):
         next_states = []
-        # For the seller, 'left' is disadvantageous, 'right' is advantageous. Find a value between the two until the gap between 'left' and 'right' is sufficiently small.
-        # For the buyer, 'left' is advantageous, 'right' is disadvantageous. Find a value between the two until the gap between 'left' and 'right' is sufficiently small.
+        # For the seller, 'left' is disadvantageous, 'right' is advantageous.
+        # Find a value between the two until the gap between 'left' and 'right' is sufficiently small.
+        # For the buyer, 'left' is advantageous, 'right' is disadvantageous.
+        # Find a value between the two until the gap between 'left' and 'right' is sufficiently small.
         left_offer_content = left_state['offer']
         right_offer_content = right_state['offer']
         for i in range(len(left_offer_content)):
@@ -265,7 +273,8 @@ class Search:
         left_init_state = deepcopy(self.init_state)
         right_init_state = deepcopy(self.init_state)
 
-        # If you are the buyer, you are searching for the maximum value; exceeding the maximum value results in a loss
+        # If you are the buyer, you are searching for the maximum value;
+        # exceeding the maximum value results in a loss
         if self.agent_role == 'buyer':
             # When the offer exceeds the maximum value, correct it to the maximum value.
             for i in range(len(self.max_border)):
@@ -276,13 +285,15 @@ class Search:
             if eval_right > 0:
                 self.target_state = right_init_state
             else:
-                # If there is a loss, it indicates that the maximum value is not the optimal solution, and further searching is required.
+                # If there is a loss, it indicates that the maximum value is not the optimal solution,
+                # and further searching is required.
                 eval_left = self.evaluate(left_init_state)
                 if eval_left <= 0:
                     return [{}]
                 else:
                     self.half_divide_search(left_init_state, right_init_state)
-        # If you are the seller, you are searching for the minimum value; going below the minimum value results in a loss.
+        # If you are the seller, you are searching for the minimum value;
+        # going below the minimum value results in a loss.
         else:
             for i in range(len(left_init_state['offer'])):
                 if self.opp_bottom:

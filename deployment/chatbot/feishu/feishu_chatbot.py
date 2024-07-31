@@ -7,6 +7,8 @@ from civsim import logger
 from requests.exceptions import HTTPError
 bot_app_secret={
     'guanliyuan': '',
+    'mongolia': '',
+    'china': '',
     'rome': '',
     'aztecs': '',
     'greece': '',
@@ -15,6 +17,8 @@ bot_app_secret={
 
 bot_access_token = {
     'guanliyuan': '',
+    'mongolia': '',
+    'china': '',
     'rome': '',
     'aztecs': '',
     'greece': '',
@@ -22,6 +26,8 @@ bot_access_token = {
 }
 feishubot2id = {
     'guanliyuan': '',
+    'mongolia': '',
+    'china': '',
     'rome': '',
     'aztecs': '',
     'greece': '',

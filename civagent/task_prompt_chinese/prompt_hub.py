@@ -46,6 +46,7 @@ AgentPrompt_analyze = """
     你的综合国力{relation[civ_strength_compare]}{speaker_persona[civ_name]}。
     你近期的记忆是{short_term},
     你最近的计划是 {last_plans},
+    {dialogue_str},
     牢牢记住你扮演的是《文明5》游戏中的{receiver_persona[civ_name]}.
     你现在要对目前的游戏局势进行分析，请使用json格式输出.
 
@@ -66,7 +67,8 @@ AgentPrompt_reply_noworkflow = """
     你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]}, 
     你的综合国力{relation[civ_strength_compare]}{speaker_persona[civ_name]}。
     牢牢记住你扮演的是《文明5》游戏中的{receiver_persona[civ_name]}.
-    现在{param[civ_name]}对你提出了{skill_name}的请求，你的决策是什么，你可以选择接受或拒绝。
+    {dialogue_str},
+    现在{param[civ_name]}对你提出了{skill_name}的请求，结合历史对话记录, 你的决策是什么，你可以选择接受或拒绝。
     只需要输出'yes'或者'no'即可，不需要输出理由，请使用json格式输出。
 """
 
@@ -272,8 +274,9 @@ AgentPrompt_reply = """
     牢牢记住你扮演的是《文明5》游戏中的{receiver_persona[civ_name]}.
     现在{param[civ_name]}对你提出了{skill_name}的请求，你的决策是什么，你可以选择接受或拒绝。
     你从同意和拒绝两种情况下进行了评估:
-    {evaluation}
-    结合评估，你的决定是什么，你可以选择接受或拒绝。
+    {evaluation},
+    当前历史记录为{dialogue_history},
+    结合评估和历史对话记录，你的决定是什么，你可以选择接受或拒绝。
     只需要输出'yes'或者'no'即可，不需要输出理由，请使用json格式输出。
 """
 
@@ -331,7 +334,7 @@ test_prompt = """
 class FunctionArg(BaseModel):
     name: Literal['buy_luxury', 'cheat', 'change_closeness', 'declare_war', 'form_ally', 'common_enemy', 'seek_peace', 'research_agreement'] \
         = Field(..., description="The name of the function", example="buy_luxury")
-    arguments: Dict = Field(..., description="The arguments of the function", example={'to_civ': 'egypt', 'demand_luxury': 'Ivory', 'offer_gold_per_turn': 10})
+    arguments: dict = Field(..., description="The arguments of the function", example={'to_civ': 'egypt', 'demand_luxury': 'Ivory', 'offer_gold_per_turn': 10})
 
 
 class FunctionDataModel(BaseModel):
@@ -363,7 +366,7 @@ class ChooseTechDataModel(BaseModel):
 
 
 class ChooseProductionDataModel(BaseModel):
-    decision: Dict = Field(..., description="要选择的生产", example={'Rome': 'Artillery', 'Antium': 'Battleship', 'Neapolis': 'Carrier', 'Ravenna': 'Destroyer'})
+    decision: dict = Field(..., description="要选择的生产", example={'Rome': 'Artillery', 'Antium': 'Battleship', 'Neapolis': 'Carrier', 'Ravenna': 'Destroyer'})
 
 
 class PlanDataModel(BaseModel):

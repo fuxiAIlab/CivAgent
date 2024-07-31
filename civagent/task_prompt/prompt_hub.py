@@ -48,6 +48,7 @@ Your military strength {relation[army_strength_compare]}{speaker_persona[civ_nam
 Your overall national strength {relation[civ_strength_compare]}{speaker_persona[civ_name]}.
 Your recent memory is {short_term},
 Your recent plans is {last_plans},
+{dialogue_str}
 Keep in mind that you're {receiver_persona[civ_name]} from Civ V.
 You now want to analyze the current game situation, using json output.
 
@@ -68,7 +69,8 @@ Your cultural richness {relation[culture_strength_compare]}{speaker_persona[civ_
 Your military strength {relation[army_strength_compare]}{speaker_persona[civ_name]},
 Your overall national strength {relation[civ_strength_compare]}{speaker_persona[civ_name]}.
 Keep in mind that you're {receiver_persona[civ_name]} from Civ V.
-Now {param[civ_name]} has made a request for {skill_name} to you, what is your decision and you can choose to accept or reject it.
+{dialogue_str}
+Now {param[civ_name]} has made a request for {skill_name} to you, Combined with historical dialogue, what is your decision and you can choose to accept or reject it.
 You only need to print 'yes' or 'no'. please output your decision, strictly in JSON format.
 
 """
@@ -284,8 +286,9 @@ Your overall national strength {relation[civ_strength_compare]}{speaker_persona[
 Keep in mind that you're {receiver_persona[civ_name]} from Civ V.
 Now {param[civ_name]} makes a {skill_name} request to you.
 You made an evaluation from two situations of agreement and disagreement:
-{evaluation}
-Combined with the evaluation, what your decision is, you can choose to accept or reject.
+{evaluation},
+The current history is {dialogue_history},
+Combined evaluation and historical dialogue recording, what your decision is, you can choose to accept or reject.
 You only need to print 'yes' or 'no', you don't need to print the reason, please use json format, strictly JSON format.
 The output should be formatted as a JSON instance that conforms to the JSON schema below.
 """
@@ -337,7 +340,7 @@ diplomatic_memory_oppo = {
 class FunctionArg(BaseModel):
     name: Literal['buy_luxury', 'cheat', 'change_closeness', 'declare_war', 'form_ally', 'common_enemy', 'seek_peace', 'research_agreement'] \
         = Field(..., description="The name of the function", example="buy_luxury")
-    arguments: Dict = Field(..., description="The arguments of the function", example={'to_civ': 'egypt', 'demand_luxury': 'Ivory', 'offer_gold_per_turn': 10})
+    arguments: dict = Field(..., description="The arguments of the function", example={'to_civ': 'egypt', 'demand_luxury': 'Ivory', 'offer_gold_per_turn': 10})
 
 
 class FunctionDataModel(BaseModel):
@@ -369,7 +372,7 @@ class ChooseTechDataModel(BaseModel):
 
 
 class ChooseProductionDataModel(BaseModel):
-    decision: Dict = Field(..., description="The production to be chosen", example={'Rome': 'Artillery', 'Antium': 'Battleship', 'Neapolis': 'Carrier', 'Ravenna': 'Destroyer'})
+    decision: dict = Field(..., description="The production to be chosen", example={'Rome': 'Artillery', 'Antium': 'Battleship', 'Neapolis': 'Carrier', 'Ravenna': 'Destroyer'})
 
 
 class PlanDataModel(BaseModel):

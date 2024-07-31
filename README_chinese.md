@@ -25,7 +25,7 @@ Appendix: https://github.com/fuxiAIlab/CivAgent/blob/main/paper_appendix.pdf
 YouTube: https://www.youtube.com/playlist?list=PL9G00-od8ezYNblsqMca7urrLoHSZ7Vs3
 
 ## 新闻
-![new](/assets/new.gif) **06/20/2024**: 论文Benchmark复现代码开源. 面向非开发者的游玩版本预计在7月初发布. 
+![new](/assets/new.gif) **06/20/2024**: 论文Benchmark复现代码开源. 面向非开发者的游玩版本预计在8月初发布. 
 
 **06/09/2024**: 论文投稿NeurIPS 2024 Track Datasets and Benchmarks, [Under Review](https://openreview.net/forum?id=AuT65qKLrr).
 

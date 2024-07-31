@@ -1,3 +1,5 @@
+import copy
+
 import ujson as json
 from functools import partial
 from civagent.civagent import CivAgent
@@ -14,9 +16,9 @@ from civsim import action_space, utils, logger
 
 
 def use_skills(gameinfo, civ_name, config_data, game_skill_data):
-    gameinfo_copy = gameinfo
+    gameinfo_copy = copy.deepcopy(gameinfo)
     gameinfo = json_load_defaultdict(gameinfo)
-    turn = gameinfo['turns']
+    turn = gameinfo.get('turns', 0)
     if isinstance(turn, collections.defaultdict):
         turn = 1
     else:
@@ -79,19 +81,14 @@ def use_skills(gameinfo, civ_name, config_data, game_skill_data):
     if simulation:
         req['simulator'] = []
         req['last_functions'] = functions
-        # proposals_before = proposals
         if proposals is not None and len(proposals) > 0:
             for proposal in proposals:
-                # to_civ, to_civ_index = proposal['to_civ'], utils.get_civ_index(save_data, proposal['to_civ'])
                 key = proposal['intention']
                 param = [proposal['param'][x] for x in action_space.decision_space[key]['param']]
                 decision_gm_fn = action_space.decision_space[key]['func']('yes')(*param)
                 simulator_save_data = decision_gm_fn(gameinfo)
-                # simulator.init_jvm()
-                # simulator_save_data = simulator.run(simulator_save_data, Preturns=5, Diplomacy_flag=False,
-                #                                     workerAuto=True)
                 simulator_save_data = predicted(
-                    simulator_save_data, Preturns=10, Diplomacy_flag=False, workerAuto=True
+                    simulator_save_data, turns=10, diplomacy_flag=False, workerAuto=True
                 )
                 civ_ind = utils.get_civ_index(simulator_save_data, robot_name)
                 score = utils.get_stats(simulator_save_data, civ_ind)['civ_strength'] - \
@@ -131,6 +128,7 @@ def use_skills(gameinfo, civ_name, config_data, game_skill_data):
         dialogue = dialogue['dialogue']
         proposal['dialogue'] = dialogue
         game_skill_data['skills'][civ_name].append(proposal)
+
     req['available_tech'] = getTechToResarchAvailable(gameinfo_copy, civ_name)
     req['available_production'] = getProductionToBuildAvailable(gameinfo_copy, civ_name)
     tech_prompt, llm_config = prompt_make('agent_choose_tech', context_dict={**req})
@@ -150,15 +148,16 @@ def use_skills(gameinfo, civ_name, config_data, game_skill_data):
     logger.debug(f"{robot_name} choose production {production_decision}")
     if tech_decision is not None:
         if 'decision' in tech_decision:
-            game_skill_data['tech'][robot_name.capitalize()] = tech_decision['decision']
+            game_skill_data['tech'][robot_name] = tech_decision['decision']
         elif 'Decision' in tech_decision:
-            game_skill_data['tech'][robot_name.capitalize()] = tech_decision['Decision']
-    game_skill_data['production'][robot_name.capitalize()] = {}
+            game_skill_data['tech'][robot_name] = tech_decision['Decision']
+    game_skill_data['production'][robot_name] = {}
+    production_decision = production_decision.get('decision', {})
     if production_decision is not None:
         for city_name in production_decision:
             if production_decision[city_name] != 'AntiAircraft Gun':
-                game_skill_data['production'][robot_name.capitalize()][city_name] = production_decision[city_name]
-    pair_dict = {'result': 'sueccess'}
+                game_skill_data['production'][robot_name][city_name.lower()] = production_decision[city_name]
+    pair_dict = {'result': 'success'}
     result = json.dumps(pair_dict)
     return result, game_skill_data
 
@@ -168,7 +167,7 @@ def reply_trades_from_skills(gameinfo, civ1_name, civ2_name, config_data):
     ind_1 = get_civ_index(gameinfo, civ1_name)
     civ2_name = fix_civ_name(civ2_name)
     civ1_name = fix_civ_name(civ1_name)
-    turn = gameinfo['turns']
+    turn = gameinfo.get('turns', 0)
     if isinstance(turn, collections.defaultdict):
         turn = 1
     else:
@@ -178,27 +177,34 @@ def reply_trades_from_skills(gameinfo, civ1_name, civ2_name, config_data):
     civ1_resource_dict = {}
     civ2_resource_dict = {}
     trade = 'Use {theirOffers} in exchange for our {ourOffers}'
-    standard_dicts = [
-        json.loads(json.dumps(item, default=lambda x: dict(x)))
-        for item in gameinfo['civilizations'][ind_1]['tradeRequests']
-    ]
-
-    for our_offer in standard_dicts[0]['trade']['ourOffers']:
+    standard_dicts = copy.deepcopy(gameinfo['civilizations'][ind_1]['tradeRequests'])
+    # standard_dicts = [
+    #     json.loads(json.dumps(item, default=lambda x: dict(x)))
+    #     for item in gameinfo['civilizations'][ind_1]['tradeRequests']
+    # ]
+    logger.info(f"Getting a transaction request {civ1_name} - {civ2_name}: {standard_dicts}")
+    for standard_our_offer in standard_dicts[0]['trade'].get('ourOffers', {}):
+        our_offer = copy.deepcopy(standard_our_offer)
         civ1_resource_dict[our_offer['name']] = our_offer.get('amount', 'Any')
-        our_offer['amount'] = our_offer.get('amount', 'one')
-        if our_offer['type'] == 'WarDeclaration':
+        our_offer['amount'] = our_offer.get('amount', 1)
+        if our_offer.get('type', '') == 'WarDeclaration':
             our_offers['ourOffers'].append(f'attack {our_offer["name"]}')
-        elif our_offer['type'] == 'Gold_Per_Turn':
+            civ1_resource_dict['DeclarWar_' + our_offer['name']] = 'Any'
+            del civ1_resource_dict[our_offer['name']]
+        elif our_offer.get('type', '') == 'Gold_Per_Turn':
             our_offers['ourOffers'].append(f'{our_offer["amount"]} gold each round')
         else:
             our_offers['ourOffers'].append(f'{our_offer["amount"]} {our_offer["name"]}')
 
-    for their_offer in standard_dicts[0]['trade']['theirOffers']:
+    for standard_their_offer in standard_dicts[0]['trade'].get('theirOffers', {}):
+        their_offer = copy.deepcopy(standard_their_offer)
         civ2_resource_dict[their_offer['name']] = their_offer.get('amount', 'Any')
-        their_offer['amount'] = their_offer.get('amount', 'one')
-        if their_offer['type'] == 'WarDeclaration':
+        their_offer['amount'] = their_offer.get('amount', 1)
+        if their_offer.get('type', '') == 'WarDeclaration':
             their_offers['theirOffers'].append(f'attack {their_offer["name"]}')
-        elif their_offer['type'] == 'Gold_Per_Turn':
+            civ2_resource_dict['DeclarWar_' + their_offer['name']] = 'Any'
+            del civ2_resource_dict[their_offer['name']]
+        elif their_offer.get('type', '') == 'Gold_Per_Turn':
             their_offers['theirOffers'].append(f'{their_offer["amount"]} gold each round')
         else:
             their_offers['theirOffers'].append(f'{their_offer["amount"]} {their_offer["name"]}')
@@ -218,17 +224,13 @@ def reply_trades_from_skills(gameinfo, civ1_name, civ2_name, config_data):
     req['short_term'] = agent.short_term
     req['simulation_result'] = []
     if config_data[civ1_name.lower()]['simulation']:
-        param = {
-            'civ_name_1': civ1_name,
-            'civ_name_2': civ2_name,
-            'civ1_resource_dict': civ1_resource_dict,
-            'civ2_resource_dict': civ2_resource_dict,
-        }
+        logger.info(f'civ1_resource_dict :{civ1_resource_dict}, civ2_resource_dict :{civ2_resource_dict}')
+        param = [civ1_name, civ2_name, civ1_resource_dict, civ2_resource_dict]
         decision_gm_fn = action_space.decision_space['propose_common_trade']['func']('yes')(*param)
         simulator_save_data = decision_gm_fn(gameinfo)
 
         simulator_save_data = predicted(
-            simulator_save_data, Preturns=10, Diplomacy_flag=False, workerAuto=True
+            simulator_save_data, turns=10, diplomacy_flag=False, workerAuto=True
         )
         civ_ind = utils.get_civ_index(simulator_save_data, civ1_name.lower())
         score = utils.get_stats(simulator_save_data, civ_ind)['civ_strength'] - \
@@ -256,9 +258,13 @@ def reply_trades_from_skills(gameinfo, civ1_name, civ2_name, config_data):
     model = config_data[robot_name]['model'] if req.get('llm_model', '') == '' else req['llm_model']
     to_civ_workflow = config_data[robot_name]['workflow']
     if to_civ_workflow == "True" or to_civ_workflow is True or to_civ_workflow == "true":
-        prompt_decision, llm_config = prompt_make('agent_analyze', context_dict={**req, **proposal})
+        prompt_decision, llm_config = prompt_make(
+            'agent_analyze', context_dict={**req, **proposal}
+        )
     else:
-        prompt_decision, llm_config = prompt_make('agent_reply_noworkflow', context_dict={**req, **proposal})
+        prompt_decision, llm_config = prompt_make(
+            'agent_reply_noworkflow', context_dict={**req, **proposal}
+        )
     req['llm_config'] = llm_config
     decision, _, _ = workflow_utils.run_workflows(
         req={**req, **proposal, "prompt": prompt_decision},
@@ -276,7 +282,20 @@ def reply_trades_from_skills(gameinfo, civ1_name, civ2_name, config_data):
             f"""On the {turn} turn, {civ1_name} denies {civ2_name}'s  """
             + f"""{trade.format(**their_offers, **our_offers)} request --fail"""
         )
-    pair_dict = {"result": decision}
+    req['decision_result'] = decision
+    req['civ1_resource_dict'] = civ1_resource_dict
+    req['civ2_resource_dict'] = civ2_resource_dict
+    req['decision_reason'] = utils.get_decision_reason(
+        decision, 'propose_common_trade', req, gameinfo, use_random=False
+    )
+    # response
+    prompt_str, prompt_config = prompt_make('propose_trade', req)
+    response, _, actual_prompt = workflow_utils.run_workflows({
+        "prompt": prompt_str,
+        'llm_config': prompt_config,
+    }, force_json=False)
+    # logger.info(f"response: {response}")
+    pair_dict = {"result": decision, "response": response}
     result = json.dumps(pair_dict)
     return result
 
@@ -298,12 +317,44 @@ def reply_declarfrienship(gameinfo, civ1_name, civ2_name, config_data):
         gameinfo, agent, text='', speaker_civ_name=speaker, receiver_civ_name=robot_name
     )
     req['short_term'] = agent.short_term
+    req['simulation_result'] = []
+    if config_data[civ1_name.lower()]['simulation']:
+        param = [civ1_name, civ2_name]
+        decision_gm_fn = action_space.decision_space['friendly_statement']['func']('yes')(*param)
+        simulator_save_data = decision_gm_fn(gameinfo)
+
+        simulator_save_data = predicted(
+            simulator_save_data, turns=10, diplomacy_flag=False, workerAuto=True
+        )
+        civ_ind = utils.get_civ_index(simulator_save_data, civ1_name.lower())
+        score = utils.get_stats(simulator_save_data, civ_ind)['civ_strength'] - \
+                utils.get_stats(gameinfo, utils.get_civ_index(gameinfo, civ1_name))['civ_strength']
+
+        if score > 0:
+            logger.debug(
+                f"After {civ1_name} agreed to the request, the civilization power was increased by {score}"
+            )
+            req['simulation_result'].append(
+                f"After {civ1_name} agreed to the request, the civilization power was increased by {score}"
+            )
+        else:
+            logger.debug(
+                f"After {civ1_name} agreed to the request, the civilization power was reduced  by {score}"
+            )
+            req['simulation_result'].append(
+                f"After {civ1_name} agreed to the request, the civilization power was reduced  by {score}"
+            )
+
     model = config_data[robot_name]['model'] if req.get('llm_model', '') == '' else req['llm_model']
     to_civ_workflow = config_data[robot_name]['workflow']
     if to_civ_workflow == "True" or to_civ_workflow is True or to_civ_workflow == "true":
-        prompt_decision, llm_config = prompt_make('agent_analyze', context_dict={**req, **proposal})
+        prompt_decision, llm_config = prompt_make(
+            'agent_analyze', context_dict={**req, **proposal}
+        )
     else:
-        prompt_decision, llm_config = prompt_make('agent_reply_noworkflow', context_dict={**req, **proposal})
+        prompt_decision, llm_config = prompt_make(
+            'agent_reply_noworkflow', context_dict={**req, **proposal}
+        )
     req['llm_config'] = llm_config
     decision, _, _ = workflow_utils.run_workflows(
         req={**req, **proposal, "prompt": prompt_decision},

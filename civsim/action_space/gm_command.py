@@ -38,7 +38,7 @@ gm_command_space = {
         "sub_item": list({**items.luxury_space, **items.resource_space}.keys()),
         "param": ["civ_name_1", "civ_name_2", "civ1_resource_dict", "civ2_resource_dict"],
         "func": lambda civ_name_1, civ_name_2, civ1_resource_dict, civ2_resource_dict: partial(
-            utils.add_common_resource(),
+            utils.add_common_resource,
             civ_name_1=civ_name_1,
             civ_name_2=civ_name_2,
             civ1_resource_dict=civ1_resource_dict,

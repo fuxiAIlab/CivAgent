@@ -229,11 +229,15 @@ class ChatManager:
 
     @staticmethod
     def send_msg_by_http(game_id, text, from_civ, to_civ="", is_group=0, debug_info={}):
-        chatmemory = asdict(ChatManager.get_chatmemory_by_gameid(
-            game_id, text, from_civ, to_civ, is_group, debug_info
-        ))
         headers = {'Content-Type': 'application/json'}
         url = config_data['chat_server']['url'] + 'open-apis/fuxi-unciv/SendMsg'
-        response = requests.post(url, data=json.dumps(chatmemory), headers=headers)
-        logger.debug(f"Send msg by remote http: {response.text}")
+        try:
+            chatmemory = asdict(ChatManager.get_chatmemory_by_gameid(
+                game_id, text, from_civ, to_civ, is_group, debug_info
+            ))
+            response = requests.post(url, data=json.dumps(chatmemory), headers=headers)
+            logger.debug(f"Send msg by send_msg_by_http: {response.text}")
+        except Exception as e:
+            # catch Unknow platform, etc.
+            logger.exception(f"Error in send_msg_by_http: {e}", exc_info=True)
         return True

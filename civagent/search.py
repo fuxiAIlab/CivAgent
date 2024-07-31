@@ -97,9 +97,6 @@ class Search:
     @staticmethod
     def pose_intervention(save_data, operations, civ_name_self, civ_name_opp):
         keys = ['culture_strength', 'tech_strength', 'army_strength', 'civ_strength']
-        # keys = ['civ_strength']
-        # save_data, Preturns=20, Diplomacy_flag=True, workerAuto=False
-        logger.warning(f"debug in pose_intervention:  len(save_data)={len(save_data)}")
         simulator_old = simulator.run(save_data, Preturns=20, Diplomacy_flag=False, workerAuto=False)
         old_val = utils.get_stats(simulator_old, utils.get_civ_index(simulator_old, civ_name_self))
         old_val_opp = utils.get_stats(simulator_old, utils.get_civ_index(simulator_old, civ_name_opp))
@@ -201,7 +198,7 @@ class Search:
 
     def dfs(self, state, visited):
         if not self.in_border(state):
-            logger.warning('search.dfs out border')
+            logger.error(f'search.dfs out border in {self.gameinfo} with {state}')
             return False
         evaluation_self = self.evaluate(state)
         if evaluation_self > 0:  # and evaluation_opp > 0:
@@ -221,7 +218,6 @@ class Search:
         finish_flag = True
         for i in range(len(left_offer_content)):
             if self.agent_role == 'seller':
-                # todo left_offer_content=[150]  self.opp_bottom is None
                 if self.opp_bottom is None:
                     if right_offer_content[i] - left_offer_content[i] > 10:
                         finish_flag = False

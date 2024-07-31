@@ -1,15 +1,35 @@
 import collections
-import json as json
+import ujson as json
 import os
+from dataclasses import dataclass
+from typing import Optional, List, Union
+from dataclasses import dataclass, asdict
 from civagent import logger
+
+
+@dataclass
+class ChatMemory:
+    msgType: str
+    isGroup: int
+    channelId: str
+    uuid: str
+    userId: str
+    sessionId: str
+    addTime: str
+    fromBot: str
+    fromCiv: str
+    toBot: str
+    toCiv: str
+    notify: str
+    gameId: str
+    debugInfo: Optional[Union[str, dict]]
 
 
 class Memory:
     def __init__(self, user_id, game_id, filter_id=''):
-        # todo Remove hard coding
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        chat_file_dir = os.path.join(current_dir, '../../data')
-        self.chat_file = os.path.normpath(os.path.join(chat_file_dir, str(user_id) + '.txt'))
+        chat_file_dir = os.path.join(current_dir, '../../deployment/data')
+        self.chat_file = os.path.normpath(os.path.join(chat_file_dir, str(game_id) + '.txt'))
         self.filter_id = filter_id
         self.game_id = game_id
 
@@ -40,56 +60,40 @@ class Memory:
                 for line in last_10_lines:
                     try:
                         json_data = json.loads(line)
-                        tmp.append(json_data)
+                        tmp.append(ChatMemory(**json_data))
                     except Exception as e:
-                        logger.warning('read_last_n_lines_with_json_loads', line, e)
+                        logger.exception(f'error in read_last_n_lines_with_json_loads for {line}', exc_info=True)
                         pass
         return tmp
 
     def get_chat_memory(self, filter_id=''):
         filter_id = self.filter_id if len(filter_id) < 1 else filter_id
-        # todo tail efficiency
-        # {"msgType": "1", "addtime": "2024-01-18 17:44:44", "sessionType": "1", "from": "2eff4204@app.robot.popo.com", "to": "wangkai02@corp.netease.com", "sessionId": "wangkai02@corp.netease.com", "uuid": "8930dbe0-5bc0-4614-a5e2-6927c07c488e", "notify": "我不想再继续闲聊下去了，我们应该专注于我们各自的文明发展和外交关系。\n debug模式:{'raw_intention': 'chat', 'intention': 'chat', 'decision_result': '结束对话', 'decision_reason': '', 'response': '我不想再继续闲聊下去了，我们应该专注于我们各自的文明发展和外交关系。'}", "eventType": "IM_P2P_TO_ROBOT_MSG", "game_id": "4cc3e9a1-1146-4d29-8a0a-ccb21b5996bc"}
+        # todo efficiency of tail
         chats = self.read_last_n_lines_with_json_loads(self.chat_file, self.game_id, num=5)
         if len(filter_id) > 0:
-            chats = [x for x in chats if filter_id in x.get("from_civ", "") or filter_id in x.get("to_civ", "")]
+            # todo supoort group chat
+            chats = [chat for chat in chats if filter_id in chat.fromCiv or filter_id in chat.toCiv]
         return chats
 
     @staticmethod
-    def chat2dialogue(chat_history, default_civ=''):
-        #  dialogue_history:
-        #    - type: "dialogue"
-        #      intention: "open_border"
-        #      speaker_civ: "Japan"
-        #      speaker_id: "555"
-        #      content: "我欲远征英格兰，可否借道？"
+    def chat2dialogue(chat_history: List[ChatMemory], default_civ=''):
         tmp = []
         for chat in chat_history:
-            try:
-                tmp.append({
-                    "type": "dialogue",
-                    "debug_info": chat.get('debug_info', {}),
-                    "speaker_civ": chat["from_civ"],
-                    "speaker_id": "",
-                    "receiver_civ": chat["to_civ"],
-                    "content": chat["notify"].split('\n')[0]
-                })
-            except Exception as e:
-                logger.warning('chat2dialogue', chat, e)
-                tmp.append({
-                    "type": "dialogue",
-                    "debug_info": chat.get('debug_info', {}),
-                    "speaker_civ": chat["from_civ"] if len(chat["from_civ"]) > 1 else default_civ,
-                    "speaker_id": "",
-                    "receiver_civ": chat["to_civ"] if len(chat["to_civ"]) > 1 else default_civ,
-                    "content": chat["notify"].split('\n')[0]
-                })
+            chat_d = asdict(chat)
+            chat_d['notify'] = chat.notify.split('\n')[0]
+            tmp.append(
+                chat_d
+            )
         return tmp
 
     @staticmethod
     def get_event_memory(game_info, civ_ind):
         # todo notificationsLog Persistence x['civilizations'][1]['notificationsLog'][-1]['notifications']
-        # {'category': 'Diplomacy', 'text': '[Cape Town] assigned you a new quest: [Bully City State].', 'actions': [{'DiplomacyAction': {'otherCivName': 'Cape Town'}}], 'icons': ['Cape Town', 'OtherIcons/Quest']}
+        # {
+        # 'category': 'Diplomacy', 'text': '[Cape Town] assigned you a new quest: [Bully City State].',
+        # 'actions': [{'DiplomacyAction': {'otherCivName': 'Cape Town'}}],
+        # 'icons': ['Cape Town', 'OtherIcons/Quest']
+        # }
         notifications = game_info['civilizations'][civ_ind].get('notifications', [])
         notificationsLog = game_info['civilizations'][civ_ind].get('notificationsLog', [])
         turns_value = game_info.get('turns', 0)
@@ -97,8 +101,8 @@ class Memory:
             turns = 1
         else:
             turns = int(game_info.get('turns', 0))
-        events = [(turns, notifications)] + [(int(x.get('turn', 0)), x.get('notifications', {})) for x in
-                                             notificationsLog]
+        history_events = [(int(x.get('turn', 0)), x.get('notifications', {})) for x in notificationsLog]
+        events = [(turns, notifications)] + history_events
         tmp = []
         for turn, event_list in events:
             for event in event_list:
@@ -109,7 +113,6 @@ class Memory:
                     tmp.append({"turns": int(turn), "type": event.get('category', ''), "text": event['text']})
                 if event.get('category', '') == 'Trade' and 'denied' not in event['text']:
                     tmp.append({"turns": int(turn), "type": event.get('category', ''), "text": event['text']})
-                # todo duplicate removal
                 # if event.get('category', '') == 'War' and 'attacked' not in event['text'] and 'can bombard' not in event['text']:
                 #     tmp.append({"turns":int(turn), "type":event.get('category', ''), "text":event['text']})
                 # todo Whose soldiers
@@ -119,3 +122,21 @@ class Memory:
                 #     matches = re.findall(pattern, event['text'])
                 #     tmp.append({"turn":turn, "text":f""})
         return tmp
+
+
+default_chat_memory = ChatMemory(
+    msgType="0",
+    isGroup=0,
+    channelId="0",
+    uuid="0",
+    userId="0",
+    sessionId="0",
+    addTime="2024-01-01 11:11:11",
+    fromBot="",
+    fromCiv="",
+    toBot="",
+    toCiv="",
+    notify="",
+    gameId="0",
+    debugInfo={}
+)

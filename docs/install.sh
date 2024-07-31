@@ -10,19 +10,16 @@ apt install temurin-21-jdk
 wget https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-py38_23.11.0-1-Linux-x86_64.sh
 bash Miniconda3-py38_23.11.0-1-Linux-x86_64.sh -b -p /root/miniconda3
 source ~/.bashrc
-source /project/miniconda3/etc/profile.d/conda.sh
+source /root/miniconda3/etc/profile.d/conda.sh
 
 conda create --name unciv python=3.9 --yes
-source /project/miniconda3/etc/profile.d/conda.sh && conda activate unciv && python --version
+source /root/miniconda3/etc/profile.d/conda.sh && conda activate unciv && python --version
 
+pip install -r requirements.txt
 
+#linux
 curl -fsSL https://ollama.com/install.sh | sh
 nohup ollama serve &
 ollama pull mistral
 ollama pull llama3
 ollama pull gemma
-
-
-pip install -r requirements.txt
-pip install llama_index.embeddings.ollama
-

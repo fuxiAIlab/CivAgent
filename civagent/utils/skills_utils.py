@@ -1,8 +1,6 @@
-import json
-
+import ujson as json
 from civsim import utils, logger
 from functools import partial
-
 from civsim.utils import fix_civ_name
 
 
@@ -32,9 +30,11 @@ def skill_buy_luxury(save_data, civ_agent, to_civ, demand_luxury, offer_gold_per
     to_civ = to_civ.lower()
     resources = utils.get_all_resources(save_data)
     if to_civ not in utils.get_all_civs(save_data):
-        raise SkillException(f"The target civilization {to_civ} does not exist")
+        return
+        # raise SkillException(f"The target civilization {to_civ} does not exist")
     elif demand_luxury.lower() not in [x.lower() for x in resources[to_civ]]:
-        raise SkillException(f"The target civilization {to_civ} has no {demand_luxury} luxury")
+        return
+        # raise SkillException(f"The target civilization {to_civ} has no {demand_luxury} luxury")
     else:
         param = {
             "to_civ": to_civ,
@@ -143,7 +143,6 @@ def skill_common_enemy(save_data, civ_agent, to_civ, enemy_civ):
     elif enemy_civ in civ_agent.war_civs:
         raise SkillException(f"The target civilization {enemy_civ} and we {civ_agent.civ_name} have engaged")
     else:
-        # todo composite fn
         param = {
             "to_civ": to_civ,
             "enemy_civ": enemy_civ,
@@ -209,9 +208,11 @@ def skill_propose_trade(save_data, civ_agent, to_civ, demand_resources, offer_re
     if to_civ not in utils.get_all_civs(save_data):
         raise SkillException(f"The target civilization {to_civ} does not exist")
     # todo Add resources such as gold and consider resources that have already been traded
-    elif any([demand_resource.lower() not in [x.lower() for x in resources[to_civ]] for demand_resource in demand_resources]):
+    elif any([demand_resource.lower() not in [x.lower() for x in resources[to_civ]]
+              for demand_resource in demand_resources]):
         raise SkillException(f"The target civilization {to_civ} does not have this resource")
-    elif any([offer_resource.lower() not in [x.lower() for x in resources[civ_agent.civ_name]] for offer_resource in offer_resources]):
+    elif any([offer_resource.lower() not in [x.lower() for x in resources[civ_agent.civ_name]]
+              for offer_resource in offer_resources]):
         raise SkillException(f"Our civilization {civ_agent.civ_name} does not have this resource")
     else:
         param = {
@@ -230,62 +231,67 @@ def skill_propose_trade(save_data, civ_agent, to_civ, demand_resources, offer_re
         }
 
 
-def get_skills(skill_name, civ1_name, civ2_name, skills, skill_num, tech, production):
+def get_skills(skill_name, civ1_name, civ2_name, game_skill_data):
     civ_name = fix_civ_name(civ1_name)
-    if civ_name not in skills:
-        skills[civ_name] = []
-    if civ_name not in skill_num:
-        skill_num[civ_name] = 0
+    if civ_name not in game_skill_data['skills']:
+        game_skill_data['skills'][civ_name] = []
+    if civ_name not in game_skill_data['skill_num']:
+        game_skill_data['skill_num'][civ_name] = 0
     if skill_name == 'production_priority':
-        if civ1_name not in production and civ1_name.lower() not in production:
+        if (civ1_name not in game_skill_data['production']
+                and civ1_name.lower() not in game_skill_data['production']):
             pair_dict = {'result': ''}
-            json_data = json.dumps(pair_dict)
+            result = json.dumps(pair_dict)
         else:
-            if civ2_name not in production[civ1_name] and civ2_name.lower() not in production[civ1_name]:
+            if (civ2_name not in game_skill_data['production'][civ1_name]
+                    and civ2_name.lower() not in game_skill_data['production'][civ1_name]):
                 pair_dict = {'result': ''}
-                json_data = json.dumps(pair_dict)
+                result = json.dumps(pair_dict)
             else:
-                pair_dict = {'result': production[civ1_name][civ2_name]}
-                json_data = json.dumps(pair_dict)
-        return json_data
+                pair_dict = {'result': game_skill_data['production'][civ1_name][civ2_name]}
+                result = json.dumps(pair_dict)
+        return result, game_skill_data
     elif skill_name == 'choose_technology':
-        if civ1_name not in tech and civ1_name.lower() not in tech:
+        if (civ1_name not in game_skill_data['tech']
+                and civ1_name.lower() not in game_skill_data['tech']):
             pair_dict = {'result': ''}
-            json_data = json.dumps(pair_dict)
+            result = json.dumps(pair_dict)
         else:
-            pair_dict = {'result': tech[civ1_name]}
-            json_data = json.dumps(pair_dict)
-        return json_data
+            pair_dict = {'result': game_skill_data['tech'][civ1_name]}
+            result = json.dumps(pair_dict)
+        return result, game_skill_data
     elif skill_name == 'common_enemy':
-        for tool in skills[civ_name]:
+        for tool in game_skill_data['skills'][civ_name]:
             if skill_name == tool['skill_name']:
                 pair_dict = {'result': 'true', 'to_civ': tool['to_civ'].capitalize(),
                              'enemy_civ': tool['param']['enemy_civ'].capitalize()}
-                json_data = json.dumps(pair_dict)
+                result = json.dumps(pair_dict)
                 logger.debug(
                     f"{civ1_name} uses the {skill_name} skill to invite {tool['to_civ']}"
                     + f"to attack {tool['param']['enemy_civ']}--success"
                 )
-                skill_num[civ_name] += 1
-                return json_data
+                game_skill_data['skills'][civ_name].remove(tool)
+                game_skill_data['skill_num'][civ_name] += 1
+                return result, game_skill_data
     elif skill_name == 'buy_luxury':
-        for tool in skills[civ_name]:
+        for tool in game_skill_data['skills'][civ_name]:
             if skill_name == tool['skill_name'] and civ2_name.lower() == tool['to_civ']:
                 pair_dict = {'result': 'true', 'gold': tool['param']['civ1_resource_dict']['Gold'],
                              'luxury': next(iter(tool['param']['civ1_resource_dict']))}
-                json_data = json.dumps(pair_dict)
+                result = json.dumps(pair_dict)
                 logger.debug(f"{civ1_name} uses the {skill_name} skill --success on {civ2_name}")
-                skill_num[civ_name] += 1
-                return json_data
+                game_skill_data['skills'][civ_name].remove(tool)
+                game_skill_data['skill_num'][civ_name] += 1
+                return result, game_skill_data
     else:
-        for tool in skills[civ_name]:
+        for tool in game_skill_data['skills'][civ_name]:
             if skill_name == tool['skill_name'] and civ2_name.lower() == tool['to_civ']:
                 pair_dict = {'result': 'true'}
-                json_data = json.dumps(pair_dict)
+                result = json.dumps(pair_dict)
                 logger.debug(f"{civ1_name} uses the {skill_name} skill --success on {civ2_name}")
-                skills[civ_name].remove(tool)
-                skill_num[civ_name] += 1
-                return json_data
+                game_skill_data['skills'][civ_name].remove(tool)
+                game_skill_data['skill_num'][civ_name] += 1
+                return result, game_skill_data
     pair_dict = {'result': 'false'}
-    json_data = json.dumps(pair_dict)
-    return json_data
+    result = json.dumps(pair_dict)
+    return result, game_skill_data

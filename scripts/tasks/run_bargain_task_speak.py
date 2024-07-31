@@ -1,9 +1,11 @@
-import json
+import ujson as json
 import logging
 import os
 import sys
+from dataclasses import asdict
+
 current_file_path = os.path.realpath(__file__)
-config_path = os.path.normpath(os.path.join(os.path.dirname(current_file_path), 'config.yaml'))
+config_path = os.path.normpath(os.path.join(os.path.dirname(current_file_path), '../../config_benchmark.yaml'))
 os.environ['CIVAGENT_CONFIG_PATH'] = config_path
 import re
 import time
@@ -12,9 +14,8 @@ from civsim import utils
 from civsim.simulator import simulator
 from civagent.civagent import CivAgent
 from civagent.utils.utils import default_req
-from civagent.utils.memory_utils import Memory
+from civagent.utils.memory_utils import Memory, default_chat_memory
 from civagent.utils.utils import save2req
-from civsim.utils import default_chat_memory
 import copy
 logging.basicConfig(level=logging.INFO)
 logger.setLevel(logging.DEBUG)
@@ -25,15 +26,16 @@ formatter = logging.Formatter()
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
+
 def get_chat(from_civ, to_civ, game_id, text):
-    memo = copy.deepcopy(default_chat_memory)
-    memo['from'] = from_civ
-    memo['from_civ'] = from_civ
-    memo['to'] = to_civ
-    memo['to_civ'] = to_civ
-    memo['game_id'] = game_id
+    memo = copy.deepcopy(asdict(default_chat_memory))
+    memo['fromBot'] = from_civ
+    memo['fromCiv'] = from_civ
+    memo['toBot'] = to_civ
+    memo['toCiv'] = to_civ
+    memo['gameId'] = game_id
     memo['notify'] = text
-    memo['addtime'] = time.strftime("%Y-%m-%d %H:%M:%S")
+    memo['addTime'] = time.strftime("%Y-%m-%d %H:%M:%S")
     return memo
 
 
@@ -63,7 +65,6 @@ def reply(agent, bargain_role, req, save_data, text, only_line=False):
     req['bargain_role'] = bargain_role
     civ1_resource_dict, civ2_resource_dict, identify_result, _ = agent.extract_trades('propose_trade', req, model='gpt-3.5-turbo-1106')
     req['identify_result'] = identify_result
-    # todo Change to buyer_resource_dict
     req['civ1_resource_dict'] = civ1_resource_dict
     req['civ2_resource_dict'] = civ2_resource_dict
     # req['intention'] = 'trade_bargain'
@@ -147,7 +148,6 @@ if __name__ == '__main__':
 
         initial_sentence = "Can I give you 50 gold in exchange for 2 luxury gems?"
         text = initial_sentence
-        # todo memory
         req_buyer = save2req(save_data, agent_buyer, text, seller_civ, buyer_civ)
         buyer_line, buyer_identify_result, buyer_border_info = reply(agent_buyer, 'buyer', req_buyer, save_data, text, only_line=True)
         Market_price_top = int(buyer_line['bottom_line'][0].get('amount', 0)) * 1.2

@@ -1,10 +1,11 @@
 LLM:
+  default_model: deepseek
+  deepseek_api_key:
   openai_api_key: 0
-  deepseek_api_key: sk-6a2ac93f7c4b4a66949ebc942afd4288
 aztecs:
   model: gpt-3.5-turbo-1106
   reflection: false
-  simulation: true
+  simulation: false
   workflow: true
 china:
   model: gpt-3.5-turbo-1106
@@ -18,16 +19,24 @@ egypt:
   workflow: false
 greece:
   model: gpt-3.5-turbo-1106
-  reflection: true
-  simulation: true
+  reflection: false
+  simulation: false
   workflow: true
 mongolia:
   model: gpt-3.5-turbo-1106
   reflection: true
-  simulation: true
+  simulation: false
   workflow: true
 rome:
   model: gpt-3.5-turbo-1106
   reflection: false
   simulation: false
-  workflow: true
+  workflow: false
+chat_server:
+  url: http://127.0.0.1:2337/
+Redis:
+  host:
+  port:
+  db:
+  password:
+use_ai: civagent

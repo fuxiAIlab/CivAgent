@@ -1,34 +1,17 @@
 import os
 import gzip
-import json as json
+import ujson as json
 from base64 import b64decode, b64encode
 import datetime
 from collections import defaultdict
 import re
 import numpy as np
 import random
-from civagent.action_space import intention_space
 from civsim import action_space
 from civsim.simulator import simulator
 import traceback
 from functools import partial
 from civsim import logger
-
-default_chat_memory = {
-    "msgType": "0",
-    "addtime": "2024-01-01 11:11:11",
-    "robotIds": "",
-    "sessionType": "0",
-    "from": "",
-    "from_civ": "",
-    "to": "",
-    "to_civ": "",
-    "sessionId": "0",
-    "uuid": "0",
-    "notify": "",
-    "game_id": "0",
-    "debug_info": {}
-}
 
 
 def format_nested_values(prompt, d):
@@ -40,7 +23,7 @@ def format_nested_values(prompt, d):
             try:
                 prompt[key] = json.loads(tmp)
             except json.JSONDecodeError as e:
-                logger.error(f"Error in format_nested_values: {e}")
+                logger.exception(f"Error in format_nested_values for {tmp}", exc_info=True)
                 prompt[key] = tmp
     return prompt
 
@@ -54,25 +37,42 @@ tree = lambda: defaultdict(tree)
 
 
 def json_load_defaultdict(data):
+    # todo ujson error
     if isinstance(data, str) or isinstance(data, bytes):
-        return json.loads(data, object_pairs_hook=partial(defaultdict, lambda: tree()))
+        return json.loads(data)
+        # return json.loads(data, object_pairs_hook=partial(defaultdict, lambda: tree()))
     else:
-        return json.load(data, object_pairs_hook=partial(defaultdict, lambda: tree()))
+        return json.load(data)
+        # return json.load(data, object_pairs_hook=partial(defaultdict, lambda: tree()))
 
 
-def is_gameid(text):
+def check_and_bind_gameid(text):
+    global logger
     text = text.strip()
     pattern = r'\b[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\b'
     result = re.findall(pattern, text)
     if len(result) > 0 and len(result[0]) == 36:
+        logger.info(f"utils.check_and_bind_gameid get legal game_id {text}")
+        logger = logger.bind(**{"game_id": result[0]})
         return result[0]
-    return ''
+    else:
+        logger.error(f"utils.check_and_bind_gameid get illegal game_id {text}")
+        return ''
 
 
 def get_filename_without_extension(path):
-    filename = os.path.basename(path)  # Retrieve the filename (including the extension) from the path.
-    filename_without_extension = os.path.splitext(filename)[0]  # Separate the filename and the extension, and take the filename part.
+    filename = os.path.basename(path)
+    filename_without_extension = os.path.splitext(filename)[0]
     return filename_without_extension
+
+
+def get_savefile(gameid):
+    assert len(gameid) == 36, gameid
+    file_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), '..',
+        'deployment', 'unciv_server', 'files', str(gameid)
+    )
+    return file_path
 
 
 def get_latest_savefile(filepath):
@@ -82,7 +82,7 @@ def get_latest_savefile(filepath):
             decompressed_data = gzip.decompress(b64decode(binary_data))
             return json_load_defaultdict(decompressed_data)
     except (IOError, gzip.BadGzipFile, TypeError) as e:
-        logger.warning(f"Error: {e}")
+        logger.exception(f"Error: {e}", exc_info=True)
         return None
 
 
@@ -96,16 +96,25 @@ def set_latest_savefile(filepath, data):
 
         return True
     except (IOError, TypeError) as e:
-        logger.warning(f"Error: {e}")
+        logger.exception(f"Error: {e}", exc_info=True)
         return False
 
 
-def time_diff_in_minutes(timestamp):
-    timestamp = int(float(timestamp))
-    current_time = datetime.datetime.now().timestamp() * 1000
-    difference = current_time - timestamp
-    difference_in_minutes = difference / (1000 * 60)
-    return difference_in_minutes
+def time_diff_in_minutes(ts, ts2=None):
+    if not isinstance(ts, str):
+        ts = int(float(ts))
+        if ts2 is None:
+            ts2 = datetime.datetime.now().timestamp() * 1000
+        time_difference = ts2 - ts
+        minutes_difference = time_difference / (1000 * 60)
+        return minutes_difference
+    else:
+        if ts2 is None:
+            ts2 = datetime.datetime.now()
+        ts = datetime.datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
+        time_difference = ts2 - ts
+        minutes_difference = time_difference.total_seconds() / 60
+        return minutes_difference
 
 
 def contains_chinese(text):
@@ -144,7 +153,6 @@ def get_civ_index(save_data, civ_name=''):
             return res[0]
         else:
             return 1
-        # return [index for index, d in enumerate(civs) if "playerType" in d and d["playerType"] == "Human"][0]
     else:
         logger.debug(
             f"utils.get_civ_index get civ_name: {civ_name}, civ_names:{[x['civName'].lower() for x in civs]}"
@@ -182,7 +190,8 @@ def technology_instant(save_data, civ_name=''):
     return save_data
 
 
-# Only the city-state has the concept of alliance, so the game can only be reflected in the goodwill \ peace \ friendship statement \ defense agreement
+# Only the city-state has the concept of alliance,
+# so the game can only be reflected in the goodwill \ peace \ friendship statement \ defense agreement
 def form_ally(save_data, civ_name_1, civ_name_2):
     save_data = open_borders(save_data, civ_name_1, civ_name_2)
     save_data = research_agreement(save_data, civ_name_1, civ_name_2)
@@ -330,6 +339,36 @@ def form_mutual_defense(save_data, civ_name_1, civ_name_2, duration=20):
     return save_data
 
 
+def add_common_resource(save_data, civ_name_1, civ_name_2, civ1_resource_dict, civ2_resource_dict):
+    civ1_luxury_resource_dict = {}
+    civ2_luxury_resource_dict = {}
+    civs_name = get_all_civs(save_data)
+    for key, value in civ1_resource_dict.items():
+        if key.capitalize() in action_space.luxury_space and key in action_space.resource_space and key.low() in ['gold', 'gold per turn']:
+            civ1_luxury_resource_dict[key] = value
+        elif key == 'Defensive Pact':
+            save_data = form_mutual_defense(save_data, civ_name_1, civ_name_2)
+        elif key == 'Research Agreement':
+            save_data = research_agreement(save_data, civ_name_1, civ_name_2)
+        elif key == 'Open Borders':
+            save_data = open_borders(save_data, civ_name_1, civ_name_2)
+        elif key in civs_name:
+            save_data = declare_war(save_data, civ_name_1, key)
+        else:
+            save_data = annex_city(save_data, civ_name_2, civ_name_1, key)
+    for key, value in civ2_resource_dict.items():
+        if key.capitalize() in action_space.luxury_space and key in action_space.resource_space and key.low() in ['gold', 'gold per turn']:
+            civ2_luxury_resource_dict[key] = value
+        elif key in civs_name:
+            save_data = declare_war(save_data, civ_name_1, key)
+        elif key == 'Defensive Pact' or key == 'Research Agreement' or key == 'Open Borders' or key in civs_name:
+            continue
+        else:
+            save_data = annex_city(save_data, civ_name_1, civ_name_2, key)
+
+    return add_luxury_resource(save_data, civ_name_1, civ_name_2, civ1_luxury_resource_dict, civ2_luxury_resource_dict)
+
+
 # luxury_resource(save_data, Roma, Mongolia,{"Ivory":2,"Furs":1,"Iron":2},{"Gold per turn":60,"Gems":1,"Oil":3})
 def add_luxury_resource(save_data, civ_name_1, civ_name_2, civ1_resource_dict, civ2_resource_dict):
     ind_player = get_civ_index(save_data)
@@ -369,8 +408,6 @@ def add_luxury_resource(save_data, civ_name_1, civ_name_2, civ1_resource_dict, c
                 "amount": int(value),
                 "duration": 24
             })
-        # todo Add 'Gold per turn' to identification
-        # todo Add key=='Gold' to be case-insensitive
         elif key == 'Gold' or key == 'gold' or key == 'GOLD':
             civ1_luxury_resource_offer['ourOffers'].append({
                 "class": "com.unciv.logic.trade.TradeOffer",
@@ -413,7 +450,6 @@ def add_luxury_resource(save_data, civ_name_1, civ_name_2, civ1_resource_dict, c
                 "duration": 25
             })
         else:
-            # todo Add assert error logging
             assert False, f"Unexpected resource key: {key}"
             pass
 
@@ -499,28 +535,14 @@ def add_luxury_resource(save_data, civ_name_1, civ_name_2, civ1_resource_dict, c
 
 
 def trade_offer(save_data, civ_name_1, civ_name_2, civ1_resource_dict, civ2_resource_dict):
-    # ind_player = get_civ_index(save_data)
-    # ind_1 = get_civ_index(save_data, civ_name_1)
     ind_2 = get_civ_index(save_data, civ_name_2)
     civ_name_1 = fix_civ_name(civ_name_1)
-    # civ_name_2 = fix_civ_name(civ_name_2)
     diplomacy_info = save_data['civilizations'][ind_2]
     trades = diplomacy_info.get('tradeRequests', [])
-    # trade_names = [item['name'] for d in trades for offer in d.values() for item in offer]
-    # if 'Luxury_Resource' not in trade_names:
-    # luxury_resource_offer = {"theirOffers":[{"class":"com.unciv.logic.trade.TradeOffer","name":"Salt","type":"Luxury_Resource","duration":24},{"class":"com.unciv.logic.trade.TradeOffer","name":"Mongolia","type":"WarDeclaration"}],"ourOffers":[{"class":"com.unciv.logic.trade.TradeOffer","name":"Gold Ore","type":"Luxury_Resource","duration":24},{"class":"com.unciv.logic.trade.TradeOffer","name":"Gold per turn","type":"Gold_Per_Turn","amount":74,"duration":24}]}
-    # "tradeRequests": [{"requestingCiv": "Rome", "trade": {"theirOffers": [
-    #     {"class": "com.unciv.logic.trade.TradeOffer", "name": "Copper", "type": "Luxury_Resource", "duration": 25}],
-    #                                                       "ourOffers": [{"class": "com.unciv.logic.trade.TradeOffer",
-    #                                                                      "name": "Incense", "type": "Luxury_Resource",
-    #                                                                      "duration": 25}]}}]
-    # civ1_luxury_resource_offer = {}
     civ2_luxury_resource_offer = {}
     if civ1_resource_dict:
-        # civ1_luxury_resource_offer['ourOffers'] = []
         civ2_luxury_resource_offer['theirOffers'] = []
     if civ2_resource_dict:
-        # civ1_luxury_resource_offer['theirOffers'] = []
         civ2_luxury_resource_offer['ourOffers'] = []
 
     for key, value in civ1_resource_dict.items():
@@ -528,9 +550,6 @@ def trade_offer(save_data, civ_name_1, civ_name_2, civ1_resource_dict, civ2_reso
             value = 1
         if key in action_space.luxury_space:
             # todo processing Any
-            # civ1_luxury_resource_offer['ourOffers'].append(
-            #     {"class": "com.unciv.logic.trade.TradeOffer", "name": key, "type": "Luxury_Resource", "amount": value,
-            #      "duration": 24})
             civ2_luxury_resource_offer['theirOffers'].append({
                 "class": "com.unciv.logic.trade.TradeOffer",
                 "name": key,
@@ -546,9 +565,6 @@ def trade_offer(save_data, civ_name_1, civ_name_2, civ1_resource_dict, civ2_reso
                 "amount": int(value)
             })
         elif key == 'Gold per turn':
-            # civ1_luxury_resource_offer['ourOffers'].append(
-            #     {"class": "com.unciv.logic.trade.TradeOffer", "name": "Gold per turn", "type": "Gold_Per_Turn",
-            #      "amount": value, "duration": 24})
             civ2_luxury_resource_offer['theirOffers'].append({
                 "class": "com.unciv.logic.trade.TradeOffer",
                 "name": "Gold per turn",
@@ -558,9 +574,6 @@ def trade_offer(save_data, civ_name_1, civ_name_2, civ1_resource_dict, civ2_reso
             })
         elif key in action_space.resource_space:
             # todo processing Any
-            # civ1_luxury_resource_offer['ourOffers'].append(
-            #     {"class": "com.unciv.logic.trade.TradeOffer", "name": key, "type": "Strategic_Resource",
-            #      "amount": value, "duration": 25})
             civ2_luxury_resource_offer['theirOffers'].append({
                 "class": "com.unciv.logic.trade.TradeOffer",
                 "name": key,
@@ -579,9 +592,6 @@ def trade_offer(save_data, civ_name_1, civ_name_2, civ1_resource_dict, civ2_reso
                 "amount": int(value),
                 "duration": 24
             })
-            # civ1_luxury_resource_offer['theirOffers'].append(
-            #     {"class": "com.unciv.logic.trade.TradeOffer", "name": key, "type": "Luxury_Resource", "amount": value,
-            #      "duration": 24})
         elif key == 'Gold' or key == 'gold' or key == 'GOLD':
             civ2_luxury_resource_offer['ourOffers'].append({
                 "class": "com.unciv.logic.trade.TradeOffer",
@@ -596,9 +606,6 @@ def trade_offer(save_data, civ_name_1, civ_name_2, civ1_resource_dict, civ2_reso
                 "amount": int(value),
                 "duration": 24
             })
-            # civ1_luxury_resource_offer['theirOffers'].append(
-            #     {"class": "com.unciv.logic.trade.TradeOffer", "name": "Gold per turn", "type": "Gold_Per_Turn",
-            #      "amount": value, "duration": 24})
         elif key in action_space.resource_space:
             civ2_luxury_resource_offer['ourOffers'].append({
                 "class": "com.unciv.logic.trade.TradeOffer",
@@ -607,25 +614,13 @@ def trade_offer(save_data, civ_name_1, civ_name_2, civ1_resource_dict, civ2_reso
                 "amount": int(value),
                 "duration": 25
             })
-            # civ1_luxury_resource_offer['theirOffers'].append(
-            #     {"class": "com.unciv.logic.trade.TradeOffer", "name": key, "type": "Strategic_Resource",
-            #      "amount": value, "duration": 25})
     civ2_luxury_resource_offer = {k: v for k, v in civ2_luxury_resource_offer.items() if v != []}
     civ2_offer = {"requestingCiv": civ_name_1, "trade": civ2_luxury_resource_offer}
     if len(diplomacy_info) > 0:
         if len(trades) > 0:
-            # save_data['civilizations'][ind_1]['diplomacy'][civ_name_2]['trades'].append(civ1_luxury_resource_offer)
             save_data['civilizations'][ind_2]['tradeRequests'].append(civ2_offer)
         else:
-            # save_data['civilizations'][ind_1]['diplomacy'][civ_name_2]['trades'] = [civ1_luxury_resource_offer]
             save_data['civilizations'][ind_2]['tradeRequests'] = [civ2_offer]
-        # notifications = []
-        # notifications.append({"category": "Trade",
-        #                       "text": "[{}]  has successfully completed business with {}!".format(civ_name_1,
-        #                                                                                           civ_name_2),
-        #                       "icons": ["OtherIcons/Pillage", "England"]})
-        # [notifications.append(y) for y in save_data['civilizations'][ind_player].get('notifications', [])]
-        # save_data['civilizations'][1]['notifications'] = notifications
     return save_data
 
 
@@ -635,7 +630,6 @@ def trade_offer(save_data, civ_name_1, civ_name_2, civ1_resource_dict, civ2_reso
 #     pass
 
 
-# todo Not developed yet
 # {"DeclarationOfFriendship":35,"YearsOfPeace":28,"SharedEnemy":5,"OpenBorders":14.125,"DefensivePact":8,"DeclaredFriendshipWithOurAllies":5}
 def friendly_statement(save_data, civ_name_1, civ_name_2):
     ind_player = get_civ_index(save_data)
@@ -788,7 +782,7 @@ def get_proximity(save_data, first_civ_index, second_civ_name):
 
 
 # Get the statistical panel data for the country
-# Integral contrast value, {' S ': civilization,' N ': population,' C ': food production, "P" : capacity,' G ': money,' T ': territory,' F ': military power,' H ': happy,' W ': science and technology,' A ': cultural}
+# Integral contrast value, {'S': civilization, 'N': population, 'C': food production, 'P' : capacity, 'G': money, 'T': territory, 'F': military power, 'H': happy, 'W': science and technology, 'A': cultural}
 def get_stats(save_data, civ_ind):
     default_stats_history = {
         "A": 0,
@@ -862,33 +856,6 @@ def get_diplomatic_status(save_data, first_civ_ind, second_civ_name):
         return 'Peace'
 
 
-def intention_correct(intention_task_reply):
-    assert isinstance(intention_task_reply, dict), type(intention_task_reply)
-    raw_intention, intention_degree, intention, response = "", "", "", ""
-    intention_str = intention_task_reply.get('intention', 'chat')
-    for k in intention_space:
-        if k in intention_str:
-            raw_intention = k
-    raw_intention = "nonsense" if len(raw_intention) < 1 else raw_intention
-    # todo No Chinese
-    # pattern = r"degree.{0,4}weak"
-    intention_degree = intention_task_reply.get('degree', 'weak')
-    if raw_intention in ("open_border", "nonsense"):
-        intention = raw_intention
-        intention_degree = 'strong'
-    elif intention_degree == "weak":
-        intention = "chat"
-    else:
-        intention = raw_intention
-    response = intention_task_reply.get('reply', '')
-    return {
-        "raw_intention": raw_intention,
-        "intention_degree": intention_degree,
-        "intention": intention,
-        "response": response
-    }
-
-
 def get_decision_result(intention, req, save_data={}, use_random=True):
     # decision_gm_fn = None
     key = intention
@@ -899,7 +866,6 @@ def get_decision_result(intention, req, save_data={}, use_random=True):
                 simulator_res_old = simulator.run(save_data, Preturns=20, Diplomacy_flag=True, workerAuto=False)
                 simulator_res_old_stat = get_stats(simulator_res_old, get_civ_index(simulator_res_old, req['civ_name']))
                 param = [req[x] for x in action_space.decision_space[key]['param']]
-                # todo gm_fn Support for composition
                 decision_gm_fn = action_space.decision_space[key]['func']('yes')(*param)
                 save_data_new = decision_gm_fn(save_data)
                 simulator_res_new = simulator.run(save_data_new, Preturns=20, Diplomacy_flag=True, workerAuto=False)
@@ -910,8 +876,7 @@ def get_decision_result(intention, req, save_data={}, use_random=True):
                 else:
                     return 'no', action_space.decision_space[intention]['decisions']['no'], None
             except Exception as e:
-                logger.error(f"""error in cget_decision_result {key}, {req}, {e}""")
-                logger.exception(f"""error in cget_decision_result {key}, {req}, {traceback.format_exc()}""")
+                logger.exception(f"""error in cget_decision_result {key}, {req}, {e}""", exc_info=True)
     decisions = action_space.decision_space[intention]['decisions']
     decision_result_raw = random.choice(list(decisions.keys()))
     param = [req[x] for x in action_space.decision_space[key]['param']]
@@ -948,7 +913,6 @@ def get_decision_reason(decision, intention, req, save_data={}, use_random=True)
                     return ''
             except Exception as e:
                 logger.error(f"""error in get_decision_reason {key}, {req}, {e}""")
-                logger.warning('error in get_decision_reason', key, req, traceback.format_exc())
     decision_reasons = action_space.decision_reason_space.get(intention + '_' + decision, [''])
     return ','.join([random.choice(decision_reasons)])
 

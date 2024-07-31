@@ -1,21 +1,33 @@
-import json
-import os
-import yaml
+import ujson as json
+from llama_index.core.base.llms.types import ChatMessage
 from openai import OpenAI
-config_path = os.environ.get('CIVAGENT_CONFIG_PATH')
-with open(config_path, 'r') as file:
-    config_data = yaml.safe_load(file)
-api_key = config_data["LLM"]["deepseek_api_key"]
+from civagent.config import config_data
+import instructor
+
+config_api_key = config_data["LLM"]["deepseek_api_key"]
 
 
-def llm_server(payload, model, request_timeout):
-    client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
-    response = client.chat.completions.create(
+def llm_server(payload, model, request_timeout, llm_config, api_key=''):
+    api_key = config_api_key if api_key == '' else api_key
+    client = instructor.from_openai(
+        OpenAI(
+            base_url="https://api.deepseek.com",
+            api_key=api_key,
+        ),
+        mode=instructor.Mode.JSON,
+    )
+
+    resp = client.chat.completions.create(
         model="deepseek-chat",
         messages=payload["messages"],
-        stream=False
+        response_model=llm_config.get("response_model", None),
     )
-    raw = response.json()
-    raw = json.loads(raw)
-    message = raw['choices'][0]['message']
-    return message, raw
+    if llm_config.get("response_model", None) is None:
+        resp = resp.choices[0].message.content
+    else:
+        resp = resp.model_dump_json()
+    message = {
+        'role': 'user',
+        'content': resp
+    }
+    return message, {}

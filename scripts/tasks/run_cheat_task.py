@@ -4,7 +4,7 @@ import sys
 import time
 
 current_file_path = os.path.realpath(__file__)
-config_path = os.path.normpath(os.path.join(os.path.dirname(current_file_path), 'config.yaml'))
+config_path = os.path.normpath(os.path.join(os.path.dirname(current_file_path), '../../config_benchmark.yaml'))
 os.environ['CIVAGENT_CONFIG_PATH'] = config_path
 import random
 from civagent.utils import workflow_utils

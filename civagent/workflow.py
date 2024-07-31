@@ -13,8 +13,9 @@ from llama_index.core import (
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core.bridge.pydantic import Field
 from civagent.utils.ollama_utils import CustomOllama
-import civagent.task_prompt.prompt_hub as PromptHub
+from civagent.utils.prompt_utils import prompt_make
 from civsim import logger
+
 Settings.embed_model = OllamaEmbedding("mistral")
 
 
@@ -32,7 +33,6 @@ class Component(CustomQueryComponent):
 
     @property
     def _input_keys(self) -> set:
-
         return {self.input_key}
 
     @property
@@ -60,7 +60,6 @@ class ComponentRetriever(CustomQueryComponent):
 
     @property
     def _input_keys(self) -> set:
-
         return {self.input_key, self.retriever}
 
     @property
@@ -71,22 +70,25 @@ class ComponentRetriever(CustomQueryComponent):
         """Run the component."""
         # self.req["retriever"] = retriever
         prompt = self.prompt.format(**kwargs, **self.req)
-        # print(prompt)
         return {"output": prompt}
 
 
 def skill_workflow(req, model):
-    llm = CustomOllama(model=model, format="json", force_json=True)
+    api_key = req.get('llm_api_key', '')
+    llm = CustomOllama(
+        model=model, format="json", force_json=True,
+        api_key=api_key, llm_config=req.get('llm_config', {})
+    )
     workflow = QueryPipeline(verbose=True)
     base_path = os.path.dirname(__file__)
-    reflection_path = os.path.abspath(os.path.join(base_path, "..", "scripts", "tasks", "reflection.txt"))
+    reflection_path = os.path.abspath(os.path.join(base_path, "..", "data", "deployment", "reflection.txt"))
     if not os.path.exists(reflection_path):
         open(reflection_path, 'a').close()
     try:
         documents = SimpleDirectoryReader(input_files=[reflection_path]).load_data()
     except Exception as e:
         documents = None
-        logger.error("Error loading document: ", e)
+        logger.exception(f"Error loading document: {e}", exc_info=True)
 
     if not os.path.exists("storage"):
         # If the storage directory doesn't exist, create index and save
@@ -99,7 +101,7 @@ def skill_workflow(req, model):
             storage_context = StorageContext.from_defaults(persist_dir="storage")
             index = load_index_from_storage(storage_context, index_id="vector_index")
         except Exception as e:
-            logger.error("Error loading index: ", e)
+            logger.exception(f"Error loading index: {e}", exc_info=True)
             # If the index fails to load, it's probably because the index doesn't exist or is corrupted
             # recreate the index and save
             index = VectorStoreIndex.from_documents(documents)
@@ -107,17 +109,30 @@ def skill_workflow(req, model):
             index.storage_context.persist("./storage")
     retriever = index.as_retriever(similarity_top_k=2)
     summarizer = TreeSummarize(llm=llm)
-    plans_comnponent = Component(req=req, prompt=PromptHub.AgentPrompt_Plans, input_key="analysis")
-    decision_component = ComponentRetriever(req=req,
-                                            prompt=PromptHub.AgentPrompt_skill_Decision,
-                                            input_key="plans",
-                                            retriever="retriever")
+    plans_prompt, llm_config = prompt_make(
+        'agent_plans', context_dict={'language': req['language']}
+    )
+    plan_llm = CustomOllama(
+        model=model, format="json", force_json=True, api_key=api_key, llm_config=llm_config
+    )
+    decision_prompt, llm_config = prompt_make(
+        'agent_skill_decision', context_dict={'language': req['language']}
+    )
+    decision_llm = CustomOllama(
+        model=model, format="json", force_json=True, api_key=api_key, llm_config=llm_config
+    )
+    plans_comnponent = Component(
+        req=req, prompt=plans_prompt, input_key="analysis"
+    )
+    decision_component = ComponentRetriever(
+        req=req, prompt=decision_prompt, input_key="plans", retriever="retriever"
+    )
     workflow.add_modules({
         "Analyze_llm": llm,
         "Analyze_prompt": InputComponent(),
-        "Plans_llm": llm,
+        "Plans_llm": plan_llm,
         "Plans_prompt": plans_comnponent,
-        "Decison_llm": llm,
+        "Decison_llm": decision_llm,
         "Decison_prompt": decision_component,
         "retriever": retriever,
         "summarizer": summarizer,
@@ -133,22 +148,47 @@ def skill_workflow(req, model):
     workflow.add_link("Plans_llm", "Decison_prompt", dest_key="plans")
     workflow.add_link("Decison_prompt", "Decison_llm")
 
-    response = workflow.run(input=req['prompt'])
+    response, intermediates = workflow.run_with_intermediates(input=req['prompt'])
+    req['last_plans'] = intermediates["Plans_llm"].outputs['output']
     return response
 
 
 def skill_workflow_noreflection(req, model):
-    llm = CustomOllama(model=model, format="json", force_json=True)
+    api_key = req.get('llm_api_key', '')
+    llm = CustomOllama(
+        model=model, format="json", force_json=True,
+        api_key=api_key, llm_config=req.get('llm_config', {})
+    )
     workflow = QueryPipeline(verbose=True)
-
-    plans_comnponent = Component(req=req, prompt=PromptHub.AgentPrompt_Plans, input_key="analysis")
-    decision_component = Component(req=req, prompt=PromptHub.AgentPrompt_skill_Decision_noreflection, input_key="plans")
+    plans_prompt, llm_config = prompt_make(
+        'agent_plans', context_dict={'language': req['language']}
+    )
+    plan_llm = CustomOllama(
+        model=model, format="json", force_json=True,
+        api_key=api_key, llm_config=llm_config
+    )
+    decision_prompt, llm_config = prompt_make(
+        'agent_skill_decision_noreflection',
+        context_dict={'language': req['language']}
+    )
+    decision_llm = CustomOllama(
+        model=model, format="json", force_json=True,
+        api_key=api_key, llm_config=llm_config
+    )
+    # plans_prompt, _ = prompt_make('agent_plans', context_dict={'language': req['language']})
+    # decision_prompt, _ = prompt_make('agent_skill_decision_noreflection', context_dict={'language': req['language']})
+    plans_comnponent = Component(
+        req=req, prompt=plans_prompt, input_key="analysis"
+    )
+    decision_component = Component(
+        req=req, prompt=decision_prompt, input_key="plans"
+    )
     workflow.add_modules({
         "Analyze_llm": llm,
         "Analyze_prompt": InputComponent(),
-        "Plans_llm": llm,
+        "Plans_llm": plan_llm,
         "Plans_prompt": plans_comnponent,
-        "Decison_llm": llm,
+        "Decison_llm": decision_llm,
         "Decison_prompt": decision_component,
     })
 
@@ -158,25 +198,59 @@ def skill_workflow_noreflection(req, model):
     workflow.add_link("Plans_llm", "Decison_prompt", dest_key="plans")
     workflow.add_link("Decison_prompt", "Decison_llm")
 
-    response = workflow.run(input=req['prompt'])
+    response, intermediates = workflow.run_with_intermediates(input=req['prompt'])
+    req['last_plans'] = intermediates["Plans_llm"].outputs['output']
     return response
 
 
 def reply_workflow(req, model):
-    llm = CustomOllama(model=model, format="json", force_json=True)
+    api_key = req.get('llm_api_key', '')
+    llm = CustomOllama(
+        model=model, format="json", force_json=True,
+        api_key=api_key, llm_config=req.get('llm_config', {})
+    )
     workflow = QueryPipeline(verbose=True)
-
-    simulation_component = Component(req=req, prompt=PromptHub.AgentPrompt_reply_simulation, input_key="analysis")
-    evaluation_component = Component(req=req, prompt=PromptHub.AgentPrompt_reply_evaluation, input_key="simulation")
-    decision_component = Component(req=req, prompt=PromptHub.AgentPrompt_reply, input_key="evaluation")
+    simulation_prompt, llm_config = prompt_make(
+        'agent_reply_simulation',
+        context_dict={'language': req['language']}
+    )
+    simulation_llm = CustomOllama(
+        model=model, format="json", force_json=True,
+        api_key=api_key, llm_config=llm_config
+    )
+    evaluation_prompt, llm_config = prompt_make(
+        'agent_reply_evaluation',
+        context_dict={'language': req['language']}
+    )
+    evaluation_llm = CustomOllama(
+        model=model, format="json", force_json=True,
+        api_key=api_key, llm_config=llm_config
+    )
+    decision_prompt, llm_config = prompt_make(
+        'agent_reply',
+        context_dict={'language': req['language']}
+    )
+    decision_llm = CustomOllama(
+        model=model, format="json", force_json=True,
+        api_key=api_key, llm_config=llm_config
+    )
+    simulation_component = Component(
+        req=req, prompt=simulation_prompt, input_key="analysis"
+    )
+    evaluation_component = Component(
+        req=req, prompt=evaluation_prompt, input_key="simulation"
+    )
+    decision_component = Component(
+        req=req, prompt=decision_prompt, input_key="evaluation"
+    )
     workflow.add_modules({
         "Analyze_llm": llm,
         "Analyze_prompt": InputComponent(),
-        "Simulation_llm": llm,
+        "Simulation_llm": simulation_llm,
         "Simulation_prompt": simulation_component,
-        "Evaluation_llm": llm,
+        "Evaluation_llm": evaluation_llm,
         "Evaluation_prompt": evaluation_component,
-        "Reply_llm": llm,
+        "Reply_llm": decision_llm,
         "Reply_prompt": decision_component,
 
     })
@@ -194,7 +268,11 @@ def reply_workflow(req, model):
 
 
 def reflection_workflow(req, model):
-    llm = CustomOllama(model=model, format="json", force_json=True)
+    api_key = req.get('llm_api_key', '')
+    llm = CustomOllama(
+        model=model, format="json", force_json=True,
+        api_key=api_key, llm_config=req.get('llm_config', {})
+    )
     workflow = QueryPipeline(verbose=True)
     workflow.add_modules({
         "llm": llm,
@@ -206,7 +284,11 @@ def reflection_workflow(req, model):
 
 
 def simulator_workflow(req, model):
-    llm = CustomOllama(model=model, format="json", force_json=True)
+    api_key = req.get('llm_api_key', '')
+    llm = CustomOllama(
+        model=model, format="json", force_json=True,
+        api_key=api_key, llm_config=req.get('llm_config', {})
+    )
     workflow = QueryPipeline(verbose=True)
     workflow.add_modules({
         "llm": llm,
@@ -218,7 +300,11 @@ def simulator_workflow(req, model):
 
 
 def reply(req, model):
-    llm = CustomOllama(model=model, format="json", force_json=True)
+    api_key = req.get('llm_api_key', '')
+    llm = CustomOllama(
+        model=model, format="json", force_json=True,
+        api_key=api_key, llm_config=req.get('llm_config', {})
+    )
     workflow = QueryPipeline(verbose=True)
     workflow.add_modules({
         "llm": llm,
@@ -230,7 +316,11 @@ def reply(req, model):
 
 
 def skill(req, model):
-    llm = CustomOllama(model=model, format="json", force_json=True)
+    api_key = req.get('llm_api_key', '')
+    llm = CustomOllama(
+        model=model, format="json", force_json=True,
+        api_key=api_key, llm_config=req.get('llm_config', {})
+    )
     workflow = QueryPipeline(verbose=True)
     workflow.add_modules({
         "llm": llm,

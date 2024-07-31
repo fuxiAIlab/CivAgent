@@ -1,6 +1,5 @@
 from functools import partial
 from .. import utils
-# from unciv_agents.prompt import action_space
 from . import items
 
 gm_command_space = {
@@ -29,6 +28,17 @@ gm_command_space = {
         "param": ["civ_name_1", "civ_name_2", "civ1_resource_dict", "civ2_resource_dict"],
         "func": lambda civ_name_1, civ_name_2, civ1_resource_dict, civ2_resource_dict: partial(
             utils.add_luxury_resource,
+            civ_name_1=civ_name_1,
+            civ_name_2=civ_name_2,
+            civ1_resource_dict=civ1_resource_dict,
+            civ2_resource_dict=civ2_resource_dict
+        ),
+    },
+    'propose_common_trade': {
+        "sub_item": list({**items.luxury_space, **items.resource_space}.keys()),
+        "param": ["civ_name_1", "civ_name_2", "civ1_resource_dict", "civ2_resource_dict"],
+        "func": lambda civ_name_1, civ_name_2, civ1_resource_dict, civ2_resource_dict: partial(
+            utils.add_common_resource(),
             civ_name_1=civ_name_1,
             civ_name_2=civ_name_2,
             civ1_resource_dict=civ1_resource_dict,

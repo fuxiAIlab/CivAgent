@@ -29,13 +29,6 @@ decision_reason_space = {
     'seek_peace_no': ['I will win in the end', 'I am only temporarily at a disadvantage', 'The battle has just begun']
 }
 
-# decision_reason_spaces = {
-#     'ask_for_object_yes':{
-#         "reason":[],
-#         "param":[],
-#         "func": lambda x:x,
-#     }
-# }
 identity_fn = lambda x: x
 identity_partial_fn = lambda *args: identity_fn
 
@@ -57,7 +50,6 @@ decision_space = {
     # Alliance
     'form_ally': {
         "decisions": {"yes": "Agree to form an alliance", "no": "Disagree to form an alliance"},
-        # todo translates to English as "The difference between forming an alliance and mutual defense.
         "param": gm_command.gm_command_space['form_ally']['param'],
         "func": lambda decision: gm_command.gm_command_space['form_ally']['func'] if decision == 'yes' else identity_partial_fn,
     },
@@ -85,6 +77,12 @@ decision_space = {
         "param": gm_command.gm_command_space['propose_trade']['param'],
         "func": lambda decision: gm_command.gm_command_space['propose_trade']['func'] if decision == 'yes' else identity_partial_fn,
     },
+    # Common trade
+    'propose_common_trade': {
+        "decisions": {"yes": "Agree to trade", "no": "Disagree to trade"},
+        "param": gm_command.gm_command_space['propose_common_trade']['param'],
+        "func": lambda decision: gm_command.gm_command_space['propose_common_trade']['func'] if decision == 'yes' else identity_partial_fn,
+    },
     # Research cooperation agreement
     'research_agreement': {
         "decisions": {"yes": "Agree to research cooperation", "no": "Disagree to research cooperation"},
@@ -100,9 +98,8 @@ decision_space = {
     # Persuade to deal with a common enemy
     "common_enemy": {
         "decisions": {"yes": "Agree with the notion of a common enemy", "no": "Disagree with the notion of a common enemy"},
-        # todo It's difficult to determine.
+        # todo change param
         "param": gm_command.gm_command_space['declare_war']['param'],
-        # todo
         "func": lambda decision: gm_command.gm_command_space['declare_war']['func'] if decision == 'yes' else identity_partial_fn,
     },
     "declare_war": {
@@ -133,7 +130,7 @@ decision_space = {
 }
 
 decision_reason_simulate_space = {
-    # todo civ_name_1 civ_name_2 It's easy to confuse.
+    # todo It's easy to confuse.
     'ask_for_object_yes': {
         "reason": ["ask_for_object_yes_satisfied_with_value"],
         "param": ["civ_name_1", "civ_name_2", "civ1_resource_dict", "civ2_resource_dict"],
@@ -347,7 +344,7 @@ decision_reason_simulate_space = {
 
 }
 
-# todo Modify it in the game code. they->you
+# todo Modify it in the game code: 'they'->'you'
 decision_reasons = {
     "friendly_statement_no_disadvantage": "To our disadvantage",
     "friendly_statement_yes_strong": "You are very strong",

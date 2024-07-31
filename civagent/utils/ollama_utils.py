@@ -1,4 +1,4 @@
-import json
+import ujson as json
 from typing import Any, Dict, Sequence, Tuple
 import httpx
 from httpx import Timeout
@@ -15,11 +15,13 @@ from llama_index.core.bridge.pydantic import Field
 from llama_index.core.constants import DEFAULT_CONTEXT_WINDOW, DEFAULT_NUM_OUTPUTS
 from llama_index.core.llms.callbacks import llm_chat_callback, llm_completion_callback
 from llama_index.core.llms.custom import CustomLLM
+from openai import OpenAI
+import instructor
 # from .netease_llm_utils import llm_server as openai_llm_server
 from .openai_llm_utils import llm_server as openai_llm_server
+from .openai_like_llm_utils import llm_server as openai_like_llm_server
 from .deepseek_llm_utils import llm_server as deepseek_llm_server
 from civagent import logger
-
 
 DEFAULT_REQUEST_TIMEOUT = 130.0
 
@@ -30,21 +32,30 @@ def get_addtional_kwargs(
     return {k: v for k, v in response.items() if k not in exclude}
 
 
-def llm_server(base_url, payload, request_timeout):
+def llm_server(base_url, payload, request_timeout, llm_config):
     url = f"{base_url}/api/chat"
-    with httpx.Client(timeout=Timeout(request_timeout)) as client:
-        response = client.post(
-            # url=f"{self.base_url}/api/chat",
-            url=url,
-            headers={
-                'Content-Type': 'application/json',
-                'Accept-Encoding': 'identity',
-            },
-            json=payload,
-        )
-        response.raise_for_status()
-        raw = response.json()
-    return raw["message"], raw
+    client = instructor.from_openai(
+        OpenAI(
+            base_url=url,
+            api_key="ollama",  # required, but unused
+        ),
+        mode=instructor.Mode.JSON,
+    )
+    resp = client.chat.completions.create(
+        model=payload["model"],
+        messages=payload["messages"],
+        response_model=llm_config.get("response_model", None),
+    )
+    if llm_config.get("response_model", None) is None:
+        resp = resp.choices[0].message.content
+    else:
+        resp = resp.model_dump_json()
+
+    message = {
+        'role': 'user',
+        'content': resp
+    }
+    return message, {}
 
 
 class CustomOllama(CustomLLM):
@@ -53,6 +64,7 @@ class CustomOllama(CustomLLM):
         description="Base url the model is hosted under.",
     )
     model: str = Field(description="The Ollama model to use.")
+    api_key: str = Field(description="The Ollama model to use by api key.")
     temperature: float = Field(
         default=0.75,
         description="The temperature to use for sampling.",
@@ -70,6 +82,9 @@ class CustomOllama(CustomLLM):
     )
     prompt_key: str = Field(
         default="prompt", description="The key to use for the prompt in API calls."
+    )
+    llm_config: Dict = Field(
+        default="ollama", description="The config to use for the llm calls."
     )
     additional_kwargs: Dict[str, Any] = Field(
         default_factory=dict,
@@ -123,14 +138,23 @@ class CustomOllama(CustomLLM):
         retry_count = 0
         while retry_count < 3:
             try:
-                # todo support more openai llm
-                if self.model == "gpt-3.5-turbo-1106" or self.model == "gpt-4-1106-preview":
-                    message, raw = openai_llm_server(payload, self.model, self.request_timeout)
-                    # message, raw = openai_server(payload, self.model, self.request_timeout)
+                if self.model in ('mistral', 'llama3', 'gemma'):
+                    message, raw = llm_server(
+                        self.base_url, payload, self.request_timeout, self.llm_config
+                    )
                 elif 'deepseek' in self.model:
-                    message, raw = deepseek_llm_server(payload, self.model, self.request_timeout)
+                    message, raw = deepseek_llm_server(
+                        payload, self.model, self.request_timeout, self.llm_config, self.api_key
+                    )
+                elif self.model in ('gpt-4-1106-preview', 'gpt-3.5-turbo-1106'):
+                    message, raw = openai_llm_server(
+                        payload, self.model, self.request_timeout, self.llm_config, self.api_key
+                    )
                 else:
-                    message, raw = llm_server(self.base_url, payload, self.request_timeout)
+                    # support openai-like llm
+                    message, raw = openai_like_llm_server(
+                        payload, self.model, self.request_timeout, self.llm_config, self.api_key
+                    )
 
                 return ChatResponse(
                     message=ChatMessage(
@@ -145,7 +169,7 @@ class CustomOllama(CustomLLM):
                 )
             except Exception as e:
                 retry_count += 1
-                logger.critical("An error occurred: ", exc_info=True)
+                logger.exception("An error occurred: ", exc_info=True)
 
     @llm_chat_callback()
     def stream_chat(

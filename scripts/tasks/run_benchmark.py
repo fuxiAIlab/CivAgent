@@ -2,7 +2,7 @@ import copy
 import os
 import time
 current_file_path = os.path.realpath(__file__)
-config_path = os.path.normpath(os.path.join(os.path.dirname(current_file_path), 'config.yaml'))
+config_path = os.path.normpath(os.path.join(os.path.dirname(current_file_path), '../../config_benchmark.yaml'))
 os.environ['CIVAGENT_CONFIG_PATH'] = config_path
 import sys
 import yaml
@@ -12,13 +12,13 @@ from civsim import logger
 # import civsim
 from civagent import civagent
 from civagent import action_space as agent_action_space
-from civagent.task_prompt import prompt_hub as PromptHub
 from civagent.utils.skills_utils import exec_skill
 from functools import partial
 from civsim import action_space, utils
 from civsim.simulator import simulator
 from civagent.utils.utils import save2req
 from civagent import default_gameid, default_from_name
+import civagent.task_prompt.prompt_hub as PromptHub
 # Use simulated switches
 simulation = False
 logging.basicConfig(level=logging.INFO)
@@ -56,7 +56,6 @@ def run_benchmark(reflection_mode, save_path, turns, key="declare_war", config_d
     for i in range(turns):
         turn = save_data['turns']
         robot_names = utils.get_all_civs(save_data)
-        # todo Determine if civilization has been wiped out, and skip if it has
         for robot_name in robot_names:
             agent = civagent.CivAgent(default_from_name, robot_name, "", "", save_data, default_gameid)
             agent.init()
@@ -70,14 +69,12 @@ def run_benchmark(reflection_mode, save_path, turns, key="declare_war", config_d
         }
         bot_skills = list(utils.format_nested_values(agent_action_space.skill_space, param_for_tools).values())
         for robot_name in robot_names:
-            # todo Test cases
             agent = agents[robot_name]
             model = config_data[robot_name]['model']
             workflow = config_data[robot_name]['workflow']
             simulation = config_data[robot_name]['simulation']
             civ_reflection = config_data[robot_name]['reflection']
             # model = civ_model[robot_name]
-            # todo In the case of a conversation between two individuals, it should be changed to agent-based request.
             req = save2req(save_data, agent, text='', speaker_civ_name='', receiver_civ_name=robot_name)
             req['use_skill'] = 3
             req['short_term'] = agent.short_term
@@ -164,7 +161,6 @@ def run_benchmark(reflection_mode, save_path, turns, key="declare_war", config_d
 
             if proposals is not None and len(proposals) > 0:
                 for proposal in proposals:
-                    # todo Provide a prompt for the LLM to make a decision.
                     req_to_civ = save2req(
                         save_data, agents[proposal['to_civ']], text='',
                         speaker_civ_name=robot_name, receiver_civ_name=proposal['to_civ']
@@ -197,7 +193,7 @@ def run_benchmark(reflection_mode, save_path, turns, key="declare_war", config_d
                                 continue
                             break
                         except Exception as e:
-                            logger.error(f"Error in decision making: {e}")
+                            logger.exception(f"Error in decision making: {e}", exc_info=True)
                             trynum += 1
                             raise
 
@@ -218,7 +214,6 @@ def run_benchmark(reflection_mode, save_path, turns, key="declare_war", config_d
                         decision_gm_fn = action_space.decision_space[key]['func']('yes')(*param)
                         save_data = decision_gm_fn(save_data)
                         agents = update_agents(save_data, agents)
-                        # todo agent.relations Put on file inner_state
                         logger.debug(f" At {turn}, {to_civ} agreed to {event_type} request for {robot_name} ")
                         agent.relations[f"{agent.civ_name}#{to_civ}"]["history_event"].append(proposal_yes_str)
                         agents[to_civ].relations[f"{to_civ}#{agent.civ_name}"]["history_event"].append(
@@ -235,11 +230,8 @@ def run_benchmark(reflection_mode, save_path, turns, key="declare_war", config_d
                         agent.relations[f"{agent.civ_name}#{to_civ}"]["history_event"].append(proposal_no_str)
                         agents[to_civ].relations[f"{to_civ}#{agent.civ_name}"]["history_event"].append(proposal_no_str_oppo)
 
-        # todo Visualization of simulation process
-        # todo Multi-llm game demo with http interface
         simulator.init_jvm()
         save_data = simulator.run(save_data, Preturns=5, Diplomacy_flag=False, workerAuto=True)
-        # todo Save each turn to the folder named initial save + timestamp
         # Print the strength of each civilization
         for robot_name in robot_names:
             if robot_name not in game_result:
@@ -281,7 +273,7 @@ def run_benchmark(reflection_mode, save_path, turns, key="declare_war", config_d
                         reflection=True
                     )
 
-                    file_path = 'scripts/tasks/reflection.txt'  # Replace with your txt file path
+                    file_path = 'scripts/data/reflection.txt'  # Replace with your txt file path
                     text_to_append = str(reflection)
                     with open(file_path, 'a') as file:
                         file.write(text_to_append + "\n")

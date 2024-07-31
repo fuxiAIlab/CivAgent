@@ -1,0 +1,49 @@
+LLM:
+  default_model: deepseek
+  deepseek_api_key:
+  openai_api_key:
+  openai_base_url:
+ai_server:
+  url: http://127.0.0.1:2335/
+unciv_server:
+  port: 2333
+chat_server:
+  url: http://127.0.0.1:2337/
+Redis:
+  host:
+  port:
+  db:
+  password:
+aztecs:
+  model: deepseek
+  reflection: false
+  simulation: false
+  workflow: true
+china:
+  model: deepseek
+  reflection: false
+  simulation: false
+  workflow: false
+egypt:
+  model: deepseek
+  reflection: false
+  simulation: false
+  workflow: false
+greece:
+  model: deepseek
+  reflection: false
+  simulation: false
+  workflow: true
+mongolia:
+  model: deepseek
+  reflection: true
+  simulation: false
+  workflow: true
+rome:
+  model: deepseek
+  reflection: false
+  simulation: false
+  workflow: false
+use_ai: civagent
+use_skills_turns: 1
+debug_mode: 0

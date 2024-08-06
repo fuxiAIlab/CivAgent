@@ -8,7 +8,7 @@ from civsim import utils
 from civsim import logger
 from civagent.utils.memory_utils import Memory
 from civagent.utils.prompt_utils import admin_reply_make
-from deployment.chatbot.popo.popo_chatbot import PopoChatbot
+# from deployment.chatbot.popo.popo_chatbot import PopoChatbot
 from deployment.redis_mq import RedisStreamMQ
 from deployment.chatbot.chatmanager import ChatManager
 

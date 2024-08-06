@@ -1,3 +1,5 @@
+import traceback
+
 import jpype
 from jpype import JPackage, JString, getDefaultJVMPath, startJVM
 import os
@@ -52,7 +54,6 @@ def init_jvm():
         return
     jar_filename = "Unciv.jar"
     jar_path = os.path.join(current_dir, "..", "..", "resources", jar_filename)
-    os.environ['JAVA_HOME'] = '/Library/Java/JavaVirtualMachines/zulu-21.jdk/Contents/Home'
     startJVM(getDefaultJVMPath(), "-Djava.class.path=%s" % jar_path)
     global UncivGame, UncivFiles, GameSettings, DiplomacyAutomation
     global DiplomacyFunctions, TradeLogic, TradeEvaluation, HeadTowardsEnemyCityAutomation
@@ -330,24 +331,28 @@ def getEnemyCitiesByPriority(gameinfo, civ_name_1, id):
         Example:
             getEnemyCitiesByPriority(gameinfo, rome, 1) => "(1, 2)"
     """
-    game = get_gameInfoFromString(gameinfo)
-    uncivGame.setGameInfo(game)
-    uncivGame.Current = uncivGame
-    civ1 = game.getCivilization(utils.fix_civ_name(civ_name_1))
-    unit = NextTurnAutomation.INSTANCE.getunits(civ1, int(id))
-    city_position = HeadTowardsEnemyCityAutomation.INSTANCE.getEnemyCities(unit)
-    return str(city_position)
+    try:
+        game = get_gameInfoFromString(gameinfo)
+        uncivGame.setGameInfo(game)
+        uncivGame.Current = uncivGame
+        civ1 = game.getCivilization(utils.fix_civ_name(civ_name_1))
+        unit = NextTurnAutomation.INSTANCE.getunits(civ1, int(id))
+        city_position = HeadTowardsEnemyCityAutomation.INSTANCE.getEnemyCities(unit)
+        return str(city_position)
+    except Exception as e:
+        logger.error(f"Error in getEnemyCitiesByPriority: {e} {traceback.format_exc()}")
+        return str("None")
 
 
-def predicted(gameinfo, Preturns, Diplomacy_flag, workerAuto):
+def predicted(gameinfo, turns, diplomacy_flag, workerAuto):
     """
         This function processes game information and returns predictions based on the parameters.
         Parameters:
             gameinfo: String
                 String representing game information
-            Preturns: Int
+            turns: Int
                 The number of predicted returns
-            Diplomacy_flag: Bool
+            diplomacy_flag: Bool
                 Flag for diplomacy status
             workerAuto: Bool
                 Flag for worker automation
@@ -361,7 +366,7 @@ def predicted(gameinfo, Preturns, Diplomacy_flag, workerAuto):
         game = get_gameInfoFromString(gameinfo)
         uncivGame.setGameInfo(game)
         uncivGame.Current = uncivGame
-        game.nextTenTurn(Preturns, Diplomacy_flag, workerAuto, False)
+        game.nextTenTurn(turns, diplomacy_flag, workerAuto, False)
         savegame = uncivFiles.gameInfoToString(game, False, False)
         return json.loads(str(savegame))
 
@@ -382,7 +387,7 @@ def getTechToResarchAvailable(gameinfo, civ1_name):
     gameinfo = get_gameInfoFromString(gameinfo)
     uncivGame.setGameInfo(gameinfo)
     uncivGame.Current = uncivGame
-    civ1 = gameinfo.getCivilization(civ1_name)
+    civ1 = gameinfo.getCivilization(utils.fix_civ_name(civ1_name))
     tech = NextTurnAutomation.INSTANCE.getGroupedResearchableTechsAsString(civ1)
     tech = str(tech)
     return tech
@@ -404,7 +409,7 @@ def getProductionToBuildAvailable(gameinfo, civ1_name):
     gameinfo = get_gameInfoFromString(gameinfo)
     uncivGame.setGameInfo(gameinfo)
     uncivGame.Current = uncivGame
-    civ1 = gameinfo.getCivilization(civ1_name)
+    civ1 = gameinfo.getCivilization(utils.fix_civ_name(civ1_name))
     building = NextTurnAutomation.INSTANCE.getAllProductionToBuild_available(civ1)
     building = str(building)
     return building
@@ -426,7 +431,7 @@ def chooseTechToResarch(gameinfo, civ1_name):
     game = get_gameInfoFromString(gameinfo)
     uncivGame.setGameInfo(game)
     uncivGame.Current = uncivGame
-    civ1 = game.getCivilization(civ1_name)
+    civ1 = game.getCivilization(utils.fix_civ_name(civ1_name))
     result = NextTurnAutomation.INSTANCE.chooseTechToResearch_civsim(civ1)
     pair_dict = {"result": str(result)}
     json_data = json.dumps(pair_dict)
@@ -451,7 +456,7 @@ def chooseNextConstruction(gameinfo, civ1_name, city_name):
     game = get_gameInfoFromString(gameinfo)
     uncivGame.setGameInfo(game)
     uncivGame.Current = uncivGame
-    civ1 = game.getCivilization(civ1_name)
+    civ1 = game.getCivilization(utils.fix_civ_name(civ1_name))
     city = civ1.getCity(city_name)
     building = city.chooseNextConstruction_civsim()
     pair_dict = {"result": str(building)}
@@ -459,13 +464,13 @@ def chooseNextConstruction(gameinfo, civ1_name, city_name):
     return json_data
 
 
-def getEnemyCitiesByPriority(filepath, civ_name_1, id):
+def run_getEnemyCitiesByPriority(filepath, civ_name_1, id):
     game_info = getGameInfo(filepath)
     json_data = getEnemyCitiesByPriority(game_info, civ_name_1, id)
     return json_data
 
 
-def run(filepath, Preturns, Diplomacy_flag, workerAuto, http_automation=False):
+def run(filepath, turns, diplomacy_flag, workerAuto, http_automation=False):
     game_info = getGameInfo(filepath)
 
     def predicted(gameinfo):
@@ -473,7 +478,7 @@ def run(filepath, Preturns, Diplomacy_flag, workerAuto, http_automation=False):
             game = get_gameInfoFromString(gameinfo)
             uncivGame.setGameInfo(game)
             uncivGame.Current = uncivGame
-            game.nextTenTurn(Preturns, Diplomacy_flag, workerAuto, http_automation)
+            game.nextTenTurn(turns, diplomacy_flag, workerAuto, http_automation)
             gameinfo = uncivFiles.gameInfoToString(game, False, False)
         return json.loads(str(gameinfo))
 

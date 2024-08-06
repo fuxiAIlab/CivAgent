@@ -1,3 +1,5 @@
+import copy
+
 from civagent import logger
 
 
@@ -82,6 +84,7 @@ def prompt_make(intention, context_dict):
         dialoge_str += str_make(system_prompt.DialogePrompt, context_dict)
     else:
         dialoge_str = 'The historical dialogue is:\n' + str(context_dict.get('dialogue_history', ""))
+    context_dict['dialogue_str'] = dialoge_str
     event_str = event_history_make(system_prompt.EventHistoryPrompt, context_dict)
     prompt_config = task_prompt.ProposeTradePrompt_Chat_Config
     if intention == 'ask_for_object':
@@ -219,7 +222,7 @@ def prompt_make(intention, context_dict):
         task_prompt_str = PromptHub.AgentPrompt_reply_evaluation
         prompt_config = {'response_model': PromptHub.ReplyEvaluationDataModel}
     elif intention == 'agent_reply':
-        task_prompt_str = PromptHub.AgentPrompt_reply
+        task_prompt_str = task_prompt_make(PromptHub.AgentPrompt_reply, context_dict)
         prompt_config = {'response_model': PromptHub.DecisionDataModel}
     else:
         assert False, f'Invalid intention: {intention}'
@@ -240,14 +243,16 @@ def intention_doublecheck(intention_result, req):
     intention = intention_result['intention']
     if 'offer' in intention_result:
         offer_extract = []
-        for offer in intention_result['offer']:
-            offer['amount'] = offer.get('amount', 'one')
+        for original_offer in intention_result['offer']:
+            offer = copy.deepcopy(original_offer)
+            offer['amount'] = offer.get('amount', 1)
             offer_extract.append(f'{offer["amount"]} {offer["item"]}')
         intention_result['offer'] = offer_extract
     if 'demand' in intention_result:
         demand_extract = []
-        for demand in intention_result['demand']:
-            demand['amount'] = demand.get('amount', 'one')
+        for original_demand in intention_result['demand']:
+            demand = copy.deepcopy(original_demand)
+            demand['amount'] = demand.get('amount', 1)
             demand_extract.append(f'{demand["amount"]} {demand["item"]}')
         intention_result['demand'] = demand_extract
     if intention == 'propose_trade' and len(intention_result.get('civ2_resource_dict', [])) == 0:

@@ -626,9 +626,9 @@ class CivAgent:
         if 'ourOffers' in standard_dicts[0]['trade']:
             our_offers = {'ourOffers': standard_dicts[0]['trade']['ourOffers'][0]}
 
-        if our_offers['ourOffers']['type'] == 'WarDeclaration':
+        if our_offers['ourOffers'].get('type', '') == 'WarDeclaration':
             trade = 'Invite us to attack {ourOffers[name]}'
-        elif their_offers['theirOffers']['type'] == 'Gold_Per_Turn':
+        elif their_offers['theirOffers'].get('type', '') == 'Gold_Per_Turn':
             trade = 'Exchange {theirOffers[amount]} gold for our {ourOffers[name]} each round'
         else:
             trade = 'Use {theirOffers[name]} in exchange for our {ourOffers[name]}'

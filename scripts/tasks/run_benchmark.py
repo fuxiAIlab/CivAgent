@@ -106,7 +106,7 @@ def run_benchmark(reflection_mode, save_path, turns, key="declare_war", config_d
                         simulator_save_data = decision_gm_fn(save_data)
                         simulator.init_jvm()
                         simulator_save_data = simulator.run(
-                            simulator_save_data, Preturns=5, Diplomacy_flag=False, workerAuto=True
+                            simulator_save_data, turns=5, diplomacy_flag=False, workerAuto=True
                         )
                         score = \
                             utils.get_stats(simulator_save_data, utils.get_civ_index(simulator_save_data, robot_name))['civ_strength'] - \
@@ -231,7 +231,7 @@ def run_benchmark(reflection_mode, save_path, turns, key="declare_war", config_d
                         agents[to_civ].relations[f"{to_civ}#{agent.civ_name}"]["history_event"].append(proposal_no_str_oppo)
 
         simulator.init_jvm()
-        save_data = simulator.run(save_data, Preturns=5, Diplomacy_flag=False, workerAuto=True)
+        save_data = simulator.run(save_data, turns=5, diplomacy_flag=False, workerAuto=True)
         # Print the strength of each civilization
         for robot_name in robot_names:
             if robot_name not in game_result:

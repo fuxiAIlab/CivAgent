@@ -17,44 +17,34 @@ Redis:
 aztecs:
   model: deepseek
   reflection: false
-  simulation: false
   simulation: true
   workflow: true
 china:
   model: deepseek
   reflection: false
-  simulation: false
-  workflow: false
   simulation: true
   workflow: true
 egypt:
   model: deepseek
   reflection: false
-  simulation: false
-  workflow: false
   simulation: true
   workflow: true
 greece:
   model: deepseek
   reflection: false
-  simulation: false
   simulation: true
   workflow: true
 mongolia:
   model: deepseek
-  reflection: true
-  simulation: false
   reflection: false
   simulation: true
   workflow: true
 rome:
   model: deepseek
   reflection: false
-  simulation: false
-  workflow: false
   simulation: true
   workflow: true
 use_ai: civagent
 use_skills_turns: 1
-debug_mode: 0debug_mode: 0
+debug_mode: 0
 use_async_agent: 1

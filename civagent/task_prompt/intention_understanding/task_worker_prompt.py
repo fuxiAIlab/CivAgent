@@ -1,4 +1,7 @@
-from civagent.task_prompt.prompt_hub import IntentionUnderstandingDataModel, DoubleCheckDataModel
+from civagent.task_prompt.prompt_hub import (
+    DoubleCheckDataModel,
+    IntentionUnderstandingDataModel,
+)
 
 IntentionUnderstandingPrompt = """Task Introduction: Please complete the following tasks based on the above dialogue content:
 Please identify the basic intent of {speaker_persona[civ_name]}, without unnecessary speculation and inference extension. Possible options include {intention_space}.

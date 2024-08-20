@@ -1,14 +1,16 @@
 import os
+
 import yaml
+
 from civagent import logger
 
-config_path = os.environ.get('CIVAGENT_CONFIG_PATH')
+config_path = os.environ.get("CIVAGENT_CONFIG_PATH")
 
 
-def load_config():
-    with open(config_path, 'r') as file:
-        config_data = yaml.safe_load(file)
-    return config_data
+def load_config() -> dict:
+    with open(config_path, "r") as file:
+        config = yaml.safe_load(file)
+    return config
 
 
 config_data = load_config()

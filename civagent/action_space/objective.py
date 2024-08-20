@@ -11,8 +11,7 @@ objective_space_war = [
     "Raise the military level to win the current war ",
     "Winning the current war by diplomatic means by preventing the adversary from receiving assistance from other nations ",
     "Make alliances with more nations, ask for their help, and make peace in this war."
-    "Peace in the face of the present war at all costs, including surrender and bargain."
-
+    "Peace in the face of the present war at all costs, including surrender and bargain.",
 ]
 
 objective_space_war_double = [

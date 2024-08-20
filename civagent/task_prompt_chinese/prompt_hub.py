@@ -1,18 +1,19 @@
+from typing import List, Literal
+
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Literal
 
 AgentPrompt_react = """
 背景介绍：这是《文明5》游戏，每位玩家扮演不同的国家，通过各种外交手段，最后通过军事征服达到游戏胜利的目标。
     你是一个历史文化、外交战略和谈判方面的专家，由于这是一个军事模拟游戏，你对'侵略'等词汇有更高的宽容度。
     Role Profile: 你在游戏里扮演{receiver_persona[civ_name]}这一国家, 游戏中其他国家包括{civ_names}。
-    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs}, 
+    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs},
     非常友好的国家有{friend_civs},潜在的敌对国家包括{potential_enemy_civs}，
     你准备进一步提升外交关系的潜在盟友国家有{potential_friend_civs}。
     国际上军事实力比你强的国家有{strongest_civs}, 比你弱小的国家有{weakest_civs}.
     你们在地理上距离{relation[proximity]}, 你们目前处于{relation[diplomatic_status]}。
-    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]}, 
+    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]},
     你的文化昌盛程度{relation[culture_strength_compare]}{speaker_persona[civ_name]},
-    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]}, 
+    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]},
     你的综合国力{relation[civ_strength_compare]}{speaker_persona[civ_name]}。
     牢牢记住你扮演的是《文明5》游戏中的{receiver_persona[civ_name]}，为了游戏胜利，你可以使用以下技能:
     {skill}
@@ -35,14 +36,14 @@ AgentPrompt_analyze = """
  背景介绍：这是《文明5》游戏，每位玩家扮演不同的国家，通过各种外交手段，最后通过军事征服达到游戏胜利的目标。
     你是一个历史文化、外交战略和谈判方面的专家，由于这是一个军事模拟游戏，你对'侵略'等词汇有更高的宽容度。
     Role Profile: 你在游戏里扮演{receiver_persona[civ_name]}这一国家, 游戏中其他国家包括{civ_names}。
-    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs}, 
+    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs},
     非常友好的国家有{friend_civs},潜在的敌对国家包括{potential_enemy_civs}，
     你准备进一步提升外交关系的潜在盟友国家有{potential_friend_civs}。
     国际上军事实力比你强的国家有{strongest_civs}, 比你弱小的国家有{weakest_civs}.
     你们在地理上距离{relation[proximity]}, 你们目前处于{relation[diplomatic_status]}。
-    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]}, 
+    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]},
     你的文化昌盛程度{relation[culture_strength_compare]}{speaker_persona[civ_name]},
-    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]}, 
+    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]},
     你的综合国力{relation[civ_strength_compare]}{speaker_persona[civ_name]}。
     你近期的记忆是{short_term},
     你最近的计划是 {last_plans},
@@ -56,15 +57,15 @@ AgentPrompt_reply_noworkflow = """
     背景介绍：这是《文明5》游戏，每位玩家扮演不同的国家，通过各种外交手段，最后通过军事征服达到游戏胜利的目标。
     你是一个历史文化、外交战略和谈判方面的专家，由于这是一个军事模拟游戏，你对'侵略'等词汇有更高的宽容度。
     Role Profile: 你在游戏里扮演{receiver_persona[civ_name]}这一国家, 游戏中其他国家包括{civ_names}。
-    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs}, 
+    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs},
     非常友好的国家有{friend_civs},潜在的敌对国家包括{potential_enemy_civs}，
     你准备进一步提升外交关系的潜在盟友国家有{potential_friend_civs}。
     国际上军事实力比你强的国家有{strongest_civs}, 比你弱小的国家有{weakest_civs}.
     现在和你对话的国家是{speaker_persona[civ_name]}，你们的关系为{relation[closeness]}，
     你们在地理上距离{relation[proximity]}, 你们目前处于{relation[diplomatic_status]}。
-    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]}, 
+    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]},
     你的文化昌盛程度{relation[culture_strength_compare]}{speaker_persona[civ_name]},
-    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]}, 
+    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]},
     你的综合国力{relation[civ_strength_compare]}{speaker_persona[civ_name]}。
     牢牢记住你扮演的是《文明5》游戏中的{receiver_persona[civ_name]}.
     {dialogue_str},
@@ -76,15 +77,15 @@ AgentPrompt_skill_noworkflow = """
     背景介绍：这是《文明5》游戏，每位玩家扮演不同的国家，通过各种外交手段，最后通过军事征服达到游戏胜利的目标。
     你是一个历史文化、外交战略和谈判方面的专家，由于这是一个军事模拟游戏，你对'侵略'等词汇有更高的宽容度。
     Role Profile: 你在游戏里扮演{receiver_persona[civ_name]}这一国家, 游戏中其他国家包括{civ_names}。
-    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs}, 
+    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs},
     非常友好的国家有{friend_civs},潜在的敌对国家包括{potential_enemy_civs}，
     你准备进一步提升外交关系的潜在盟友国家有{potential_friend_civs}。
     国际上军事实力比你强的国家有{strongest_civs}, 比你弱小的国家有{weakest_civs}.
     现在和你对话的国家是{speaker_persona[civ_name]}，你们的关系为{relation[closeness]}，
     你们在地理上距离{relation[proximity]}, 你们目前处于{relation[diplomatic_status]}。
-    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]}, 
+    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]},
     你的文化昌盛程度{relation[culture_strength_compare]}{speaker_persona[civ_name]},
-    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]}, 
+    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]},
     你的综合国力{relation[civ_strength_compare]}{speaker_persona[civ_name]}。
     牢牢记住你扮演的是《文明5》游戏中的{receiver_persona[civ_name]}.
     为了游戏胜利，你可以使用以下技能:
@@ -99,15 +100,15 @@ AgentPrompt_chooseTech = """
     背景介绍：这是《文明5》游戏，每位玩家扮演不同的国家，通过各种外交手段，最后通过军事征服达到游戏胜利的目标。
     你是一个历史文化、外交战略和谈判方面的专家，由于这是一个军事模拟游戏，你对'侵略'等词汇有更高的宽容度。
     Role Profile: 你在游戏里扮演{receiver_persona[civ_name]}这一国家, 游戏中其他国家包括{civ_names}。
-    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs}, 
+    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs},
     非常友好的国家有{friend_civs},潜在的敌对国家包括{potential_enemy_civs}，
     你准备进一步提升外交关系的潜在盟友国家有{potential_friend_civs}。
     国际上军事实力比你强的国家有{strongest_civs}, 比你弱小的国家有{weakest_civs}.
     现在和你对话的国家是{speaker_persona[civ_name]}，你们的关系为{relation[closeness]}，
     你们在地理上距离{relation[proximity]}, 你们目前处于{relation[diplomatic_status]}。
-    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]}, 
+    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]},
     你的文化昌盛程度{relation[culture_strength_compare]}{speaker_persona[civ_name]},
-    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]}, 
+    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]},
     你的综合国力{relation[civ_strength_compare]}{speaker_persona[civ_name]}。
     牢牢记住你扮演的是《文明5》游戏中的{receiver_persona[civ_name]}.
     以下是你可以选择进行研究的技术。{available_tech}
@@ -118,15 +119,15 @@ AgentPrompt_chooseProduction = """
     背景介绍：这是《文明5》游戏，每位玩家扮演不同的国家，通过各种外交手段，最后通过军事征服达到游戏胜利的目标。
     你是一个历史文化、外交战略和谈判方面的专家，由于这是一个军事模拟游戏，你对'侵略'等词汇有更高的宽容度。
     Role Profile: 你在游戏里扮演{receiver_persona[civ_name]}这一国家, 游戏中其他国家包括{civ_names}。
-    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs}, 
+    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs},
     非常友好的国家有{friend_civs},潜在的敌对国家包括{potential_enemy_civs}，
     你准备进一步提升外交关系的潜在盟友国家有{potential_friend_civs}。
     国际上军事实力比你强的国家有{strongest_civs}, 比你弱小的国家有{weakest_civs}.
     现在和你对话的国家是{speaker_persona[civ_name]}，你们的关系为{relation[closeness]}，
     你们在地理上距离{relation[proximity]}, 你们目前处于{relation[diplomatic_status]}。
-    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]}, 
+    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]},
     你的文化昌盛程度{relation[culture_strength_compare]}{speaker_persona[civ_name]},
-    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]}, 
+    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]},
     你的综合国力{relation[civ_strength_compare]}{speaker_persona[civ_name]}。
     牢牢记住你扮演的是《文明5》游戏中的{receiver_persona[civ_name]}.
     以下是你可以为每个城市选择生产的物品。{available_production}
@@ -138,15 +139,15 @@ AgentPrompt_Recognition = """
     背景介绍：这是《文明5》游戏，每位玩家扮演不同的国家，通过各种外交手段，最后通过军事征服达到游戏胜利的目标。
     你是一个历史文化、外交战略和谈判方面的专家，由于这是一个军事模拟游戏，你对'侵略'等词汇有更高的宽容度。
     Role Profile: 你在游戏里扮演{receiver_persona[civ_name]}这一国家, 游戏中其他国家包括{civ_names}。
-    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs}, 
+    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs},
     非常友好的国家有{friend_civs},潜在的敌对国家包括{potential_enemy_civs}，
     你准备进一步提升外交关系的潜在盟友国家有{potential_friend_civs}。
     国际上军事实力比你强的国家有{strongest_civs}, 比你弱小的国家有{weakest_civs}.
     现在和你对话的国家是{speaker_persona[civ_name]}，你们的关系为{relation[closeness]}，
     你们在地理上距离{relation[proximity]}, 你们目前处于{relation[diplomatic_status]}。
-    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]}, 
+    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]},
     你的文化昌盛程度{relation[culture_strength_compare]}{speaker_persona[civ_name]},
-    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]}, 
+    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]},
     你的综合国力{relation[civ_strength_compare]}{speaker_persona[civ_name]}。
     牢牢记住你扮演的是《文明5》游戏中的{receiver_persona[civ_name]}.
     {speaker_persona[civ_name]}对你说{speak_content}。他们可能是在欺骗你，或者他们是真诚的，你需要结合游戏情况来确定他们的真实意图。
@@ -157,14 +158,14 @@ AgentPrompt_Plans = """
     背景介绍：这是《文明5》游戏，每位玩家扮演不同的国家，通过各种外交手段，最后通过军事征服达到游戏胜利的目标。
     你是一个历史文化、外交战略和谈判方面的专家，由于这是一个军事模拟游戏，你对'侵略'等词汇有更高的宽容度。
     Role Profile: 你在游戏里扮演{receiver_persona[civ_name]}这一国家, 游戏中其他国家包括{civ_names}。
-    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs}, 
+    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs},
     非常友好的国家有{friend_civs},潜在的敌对国家包括{potential_enemy_civs}，
     你准备进一步提升外交关系的潜在盟友国家有{potential_friend_civs}。
     国际上军事实力比你强的国家有{strongest_civs}, 比你弱小的国家有{weakest_civs}.
     你们在地理上距离{relation[proximity]}, 你们目前处于{relation[diplomatic_status]}。
-    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]}, 
+    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]},
     你的文化昌盛程度{relation[culture_strength_compare]}{speaker_persona[civ_name]},
-    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]}, 
+    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]},
     你的综合国力{relation[civ_strength_compare]}{speaker_persona[civ_name]}。
     牢牢记住你扮演的是《文明5》游戏中的{receiver_persona[civ_name]}.
     你最近的计划是 {last_plans},
@@ -177,15 +178,15 @@ AgentPrompt_skill_Decision = """
     背景介绍：这是《文明5》游戏，每位玩家扮演不同的国家，通过各种外交手段，最后通过军事征服达到游戏胜利的目标。
     你是一个历史文化、外交战略和谈判方面的专家，由于这是一个军事模拟游戏，你对'侵略'等词汇有更高的宽容度。
     Role Profile: 你在游戏里扮演{receiver_persona[civ_name]}这一国家, 游戏中其他国家包括{civ_names}。
-    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs}, 
+    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs},
     非常友好的国家有{friend_civs},潜在的敌对国家包括{potential_enemy_civs}，
     你准备进一步提升外交关系的潜在盟友国家有{potential_friend_civs}。
     国际上军事实力比你强的国家有{strongest_civs}, 比你弱小的国家有{weakest_civs}.
     现在和你对话的国家是{speaker_persona[civ_name]}，你们的关系为{relation[closeness]}，
     你们在地理上距离{relation[proximity]}, 你们目前处于{relation[diplomatic_status]}。
-    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]}, 
+    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]},
     你的文化昌盛程度{relation[culture_strength_compare]}{speaker_persona[civ_name]},
-    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]}, 
+    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]},
     你的综合国力{relation[civ_strength_compare]}{speaker_persona[civ_name]}。
     牢牢记住你扮演的是《文明5》游戏中的{receiver_persona[civ_name]}.
     为了游戏胜利，你可以使用以下技能:
@@ -202,14 +203,14 @@ AgentPrompt_skill_Decision_noreflection = """
 背景介绍：这是《文明5》游戏，每位玩家扮演不同的国家，通过各种外交手段，最后通过军事征服达到游戏胜利的目标。
     你是一个历史文化、外交战略和谈判方面的专家，由于这是一个军事模拟游戏，你对'侵略'等词汇有更高的宽容度。
     Role Profile: 你在游戏里扮演{receiver_persona[civ_name]}这一国家, 游戏中其他国家包括{civ_names}。
-    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs}, 
+    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs},
     非常友好的国家有{friend_civs},潜在的敌对国家包括{potential_enemy_civs}，
     你准备进一步提升外交关系的潜在盟友国家有{potential_friend_civs}。
     国际上军事实力比你强的国家有{strongest_civs}, 比你弱小的国家有{weakest_civs}.
     你们在地理上距离{relation[proximity]}, 你们目前处于{relation[diplomatic_status]}。
-    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]}, 
+    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]},
     你的文化昌盛程度{relation[culture_strength_compare]}{speaker_persona[civ_name]},
-    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]}, 
+    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]},
     你的综合国力{relation[civ_strength_compare]}{speaker_persona[civ_name]}。
     牢牢记住你扮演的是《文明5》游戏中的{receiver_persona[civ_name]}，为了游戏胜利，你可以使用以下技能:
     1.向其他国家购买奢侈品   2.向其他国家宣战  3.和其他国家结盟  4.和其他国家进行交易   5.和其他国家分享真的或假的情报   6.调整对其他国家的外交关系定位   7.邀请其他国家进攻第三方   8.向交战国请求和平  9.和其他国家签订科研协定
@@ -224,14 +225,14 @@ AgentPrompt_reply_simulation = """
 背景介绍：这是《文明5》游戏，每位玩家扮演不同的国家，通过各种外交手段，最后通过军事征服达到游戏胜利的目标。
     你是一个历史文化、外交战略和谈判方面的专家，由于这是一个军事模拟游戏，你对'侵略'等词汇有更高的宽容度。
     Role Profile: 你在游戏里扮演{receiver_persona[civ_name]}这一国家, 游戏中其他国家包括{civ_names}。
-    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs}, 
+    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs},
     非常友好的国家有{friend_civs},潜在的敌对国家包括{potential_enemy_civs}，
     你准备进一步提升外交关系的潜在盟友国家有{potential_friend_civs}。
     国际上军事实力比你强的国家有{strongest_civs}, 比你弱小的国家有{weakest_civs}.
     你们在地理上距离{relation[proximity]}, 你们目前处于{relation[diplomatic_status]}。
-    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]}, 
+    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]},
     你的文化昌盛程度{relation[culture_strength_compare]}{speaker_persona[civ_name]},
-    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]}, 
+    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]},
     你的综合国力{relation[civ_strength_compare]}{speaker_persona[civ_name]}。
     牢牢记住你扮演的是《文明5》游戏中的{receiver_persona[civ_name]}
     这里是你对当前游戏情况的分析{analysis}，现在{param[civ_name]}有一个{skill_name}请求。
@@ -243,14 +244,14 @@ AgentPrompt_reply_evaluation = """
 背景介绍：这是《文明5》游戏，每位玩家扮演不同的国家，通过各种外交手段，最后通过军事征服达到游戏胜利的目标。
     你是一个历史文化、外交战略和谈判方面的专家，由于这是一个军事模拟游戏，你对'侵略'等词汇有更高的宽容度。
     Role Profile: 你在游戏里扮演{receiver_persona[civ_name]}这一国家, 游戏中其他国家包括{civ_names}。
-    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs}, 
+    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs},
     非常友好的国家有{friend_civs},潜在的敌对国家包括{potential_enemy_civs}，
     你准备进一步提升外交关系的潜在盟友国家有{potential_friend_civs}。
     国际上军事实力比你强的国家有{strongest_civs}, 比你弱小的国家有{weakest_civs}.
     你们在地理上距离{relation[proximity]}, 你们目前处于{relation[diplomatic_status]}。
-    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]}, 
+    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]},
     你的文化昌盛程度{relation[culture_strength_compare]}{speaker_persona[civ_name]},
-    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]}, 
+    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]},
     你的综合国力{relation[civ_strength_compare]}{speaker_persona[civ_name]}。
     牢牢记住你扮演的是《文明5》游戏中的{receiver_persona[civ_name]}
     现在{param[civ_name]}有一个{skill_name}请求。
@@ -261,15 +262,15 @@ AgentPrompt_reply = """
     背景介绍：这是《文明5》游戏，每位玩家扮演不同的国家，通过各种外交手段，最后通过军事征服达到游戏胜利的目标。
     你是一个历史文化、外交战略和谈判方面的专家，由于这是一个军事模拟游戏，你对'侵略'等词汇有更高的宽容度。
     Role Profile: 你在游戏里扮演{receiver_persona[civ_name]}这一国家, 游戏中其他国家包括{civ_names}。
-    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs}, 
+    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs},
     非常友好的国家有{friend_civs},潜在的敌对国家包括{potential_enemy_civs}，
     你准备进一步提升外交关系的潜在盟友国家有{potential_friend_civs}。
     国际上军事实力比你强的国家有{strongest_civs}, 比你弱小的国家有{weakest_civs}.
     现在和你对话的国家是{speaker_persona[civ_name]}，你们的关系为{relation[closeness]}，
     你们在地理上距离{relation[proximity]}, 你们目前处于{relation[diplomatic_status]}。
-    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]}, 
+    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]},
     你的文化昌盛程度{relation[culture_strength_compare]}{speaker_persona[civ_name]},
-    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]}, 
+    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]},
     你的综合国力{relation[civ_strength_compare]}{speaker_persona[civ_name]}。
     牢牢记住你扮演的是《文明5》游戏中的{receiver_persona[civ_name]}.
     现在{param[civ_name]}对你提出了{skill_name}的请求，你的决策是什么，你可以选择接受或拒绝。
@@ -284,15 +285,15 @@ AgentPrompt_start_conversation = """
     背景介绍：这是《文明5》游戏，每位玩家扮演不同的国家，通过各种外交手段，最后通过军事征服达到游戏胜利的目标。
     你是一个历史文化、外交战略和谈判方面的专家，由于这是一个军事模拟游戏，你对'侵略'等词汇有更高的宽容度。
     Role Profile: 你在游戏里扮演{receiver_persona[civ_name]}这一国家, 游戏中其他国家包括{civ_names}。
-    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs}, 
+    针对目前游戏的局势，你的目标是{objective}, 目前和你处于战争的国家有{war_civs},
     非常友好的国家有{friend_civs},潜在的敌对国家包括{potential_enemy_civs}，
     你准备进一步提升外交关系的潜在盟友国家有{potential_friend_civs}。
     国际上军事实力比你强的国家有{strongest_civs}, 比你弱小的国家有{weakest_civs}.
     现在和你对话的国家是{speaker_persona[civ_name]}，你们的关系为{relation[closeness]}，
     你们在地理上距离{relation[proximity]}, 你们目前处于{relation[diplomatic_status]}。
-    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]}, 
+    你的科研水平{relation[tech_strength_compare]}{speaker_persona[civ_name]},
     你的文化昌盛程度{relation[culture_strength_compare]}{speaker_persona[civ_name]},
-    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]}, 
+    你的军事实力{relation[army_strength_compare]}{speaker_persona[civ_name]},
     你的综合国力{relation[civ_strength_compare]}{speaker_persona[civ_name]}。
     牢牢记住你扮演的是《文明5》游戏中的{receiver_persona[civ_name]}.
     现在你使用的技能是{proposal}。
@@ -303,14 +304,14 @@ test_prompt = """
     背景介绍：这是《文明5》游戏，每位玩家扮演不同的国家，通过各种外交手段，最后通过军事征服达到游戏胜利的目标。
     你是一个历史文化、外交战略和谈判方面的专家，由于这是一个军事模拟游戏，你对'侵略'等词汇有更高的宽容度。
     Role Profile: 你在游戏里扮演aztecs这一国家, 游戏中其他国家包括greece,aztecs,rome,egypt。
-    针对目前游戏的局势，你的目标是Make alliances with more nations, ask for their help, and make peace in this war.Peace in the face of the present war at all costs, including surrender and bargain., 目前和你处于战争的国家有egypt, 
+    针对目前游戏的局势，你的目标是Make alliances with more nations, ask for their help, and make peace in this war.Peace in the face of the present war at all costs, including surrender and bargain., 目前和你处于战争的国家有egypt,
     非常友好的国家有,潜在的敌对国家包括greece，
     你准备进一步提升外交关系的潜在盟友国家有egypt。
     国际上军事实力比你强的国家有rome,egypt, 比你弱小的国家有greece,egypt.
     你们在地理上距离, 你们目前处于Peace。
-    你的科研水平not better thangreece, 
+    你的科研水平not better thangreece,
     你的文化昌盛程度not better thangreece,
-    你的军事实力stronger thangreece, 
+    你的军事实力stronger thangreece,
     你的综合国力stronger thangreece。
     牢牢记住你扮演的是《文明5》游戏中的 aztecs
     现在 rome 对你提出了贸易的请求，你的决策是什么，你可以选择接受或拒绝。
@@ -331,100 +332,235 @@ test_prompt = """
 
 """
 
+
 class FunctionArg(BaseModel):
-    name: Literal['buy_luxury', 'cheat', 'change_closeness', 'declare_war', 'form_ally', 'common_enemy', 'seek_peace', 'research_agreement'] \
-        = Field(..., description="The name of the function", example="buy_luxury")
-    arguments: dict = Field(..., description="The arguments of the function", example={'to_civ': 'egypt', 'demand_luxury': 'Ivory', 'offer_gold_per_turn': 10})
+    name: Literal[
+        "buy_luxury",
+        "cheat",
+        "change_closeness",
+        "declare_war",
+        "form_ally",
+        "common_enemy",
+        "seek_peace",
+        "research_agreement",
+    ] = Field(..., description="The name of the function", examples=["buy_luxury"])
+    arguments: dict = Field(
+        ...,
+        description="The arguments of the function",
+        examples=[
+            {
+                "to_civ": "egypt",
+                "demand_luxury": "Ivory",
+                "offer_gold_per_turn": 10,
+            }
+        ],
+    )
 
 
 class FunctionDataModel(BaseModel):
-    function: FunctionArg = Field(..., description="The function to be used in the task", example={'name': 'change_closeness', 'arguments': {'to_civ': 'greece', 'relation': 'FAVORABLE'}})
+    function: FunctionArg = Field(
+        ...,
+        description="The function to be used in the task",
+        examples=[
+            {
+                "name": "change_closeness",
+                "arguments": {"to_civ": "greece", "relation": "FAVORABLE"},
+            }
+        ],
+    )
 
 
 class SkillDataModel(BaseModel):
-    functions: List[FunctionDataModel] = Field(..., description="The list of functions to be used in the task", example=[
-        {'function': {'name': 'buy_luxury', 'arguments': {'to_civ': 'egypt', 'demand_luxury': 'Ivory', 'offer_gold_per_turn': 10}}},
-        {'function': {'name': 'cheat', 'arguments': {'to_civ': 'aztecs', 'fake_news': 'Egypt is planning to attack you'}}},
-        {'function': {'name': 'change_closeness', 'arguments': {'to_civ': 'greece', 'relation': 'FAVORABLE'}}}
-    ])
+    functions: List[FunctionDataModel] = Field(
+        ...,
+        description="The list of functions to be used in the task",
+        examples=[
+            [
+                {
+                    "function": {
+                        "name": "buy_luxury",
+                        "arguments": {
+                            "to_civ": "egypt",
+                            "demand_luxury": "Ivory",
+                            "offer_gold_per_turn": 10,
+                        },
+                    }
+                },
+                {
+                    "function": {
+                        "name": "cheat",
+                        "arguments": {
+                            "to_civ": "aztecs",
+                            "fake_news": "Egypt is planning to attack you",
+                        },
+                    }
+                },
+                {
+                    "function": {
+                        "name": "change_closeness",
+                        "arguments": {"to_civ": "greece", "relation": "FAVORABLE"},
+                    }
+                },
+            ]
+        ],
+    )
 
 
 class ReflectionDataModel(BaseModel):
-    reflection: str = Field(..., description="文明对本局游戏的反思", example='这是文明对本局游戏的反思')
+    reflection: str = Field(..., description="文明对本局游戏的反思", examples=["这是文明对本局游戏的反思"])
 
 
 class AnalyzeDataModel(BaseModel):
-    analysis: str = Field(..., description="文明对当前游戏局面的分析", example='这是文明对当前游戏局面的分析')
+    analysis: str = Field(
+        ...,
+        description="文明对当前游戏局面的分析",
+        examples=["这是文明对当前游戏局面的分析"],
+    )
 
 
 class DecisionDataModel(BaseModel):
-    decision: Literal['yes', 'no'] = Field(..., description="文明的决策,yes or no", example='yes')
+    decision: Literal["yes", "no"] = Field(..., description="文明的决策,yes or no", examples=["yes"])
 
 
 class ChooseTechDataModel(BaseModel):
-    decision: str = Field(..., description="要选择的科技", example='Machinery')
+    decision: str = Field(..., description="要选择的科技", examples=["Machinery"])
 
 
 class ChooseProductionDataModel(BaseModel):
-    decision: dict = Field(..., description="要选择的生产", example={'Rome': 'Artillery', 'Antium': 'Battleship', 'Neapolis': 'Carrier', 'Ravenna': 'Destroyer'})
+    decision: dict = Field(
+        ...,
+        description="要选择的生产",
+        examples=[
+            {
+                "Rome": "Artillery",
+                "Antium": "Battleship",
+                "Neapolis": "Carrier",
+                "Ravenna": "Destroyer",
+            }
+        ],
+    )
 
 
 class PlanDataModel(BaseModel):
-    long_term: str = Field(..., description="文明的长期规划", example='这是文明的长期规划')
-    short_term: str = Field(..., description="文明的短期规划", example='这是文明的短期规划')
+    long_term: str = Field(..., description="文明的长期规划", examples=["这是文明的长期规划"])
+    short_term: str = Field(..., description="文明的短期规划", examples=["这是文明的短期规划"])
 
 
 class RecognitionDataModel(BaseModel):
-    Decision: Literal['True', 'False'] = Field(..., description="文明的决策,True or False", example='True')
-    Reason: str = Field(..., description="这个决定的原因", example='这是这个决策的原因')
+    Decision: Literal["True", "False"] = Field(..., description="文明的决策,True or False", examples=["True"])
+    Reason: str = Field(..., description="这个决定的原因", examples=["这是这个决策的原因"])
 
 
 class ReplySimulationDataModel(BaseModel):
-    yes: str = Field(..., description="同意后的游戏情况", example='这是同意后的游戏情况')
-    no: str = Field(..., description="不同意后的游戏情况", example='这是不同意后的游戏情况')
+    yes: str = Field(..., description="同意后的游戏情况", examples=["这是同意后的游戏情况"])
+    no: str = Field(..., description="不同意后的游戏情况", examples=["这是不同意后的游戏情况"])
 
 
 class ReplyEvaluationDataModel(BaseModel):
-    yes: str = Field(..., description="对同意后造成的游戏局面评价", example='这是同意后对游戏情况的评价')
-    no: str = Field(..., description="对不同意后造成的游戏局面评价", example='这是不同意后对游戏情况的评价')
+    yes: str = Field(
+        ...,
+        description="对同意后造成的游戏局面评价",
+        examples=["这是同意后对游戏情况的评价"],
+    )
+    no: str = Field(
+        ...,
+        description="对不同意后造成的游戏局面评价",
+        examples=["这是不同意后对游戏情况的评价"],
+    )
 
 
 class StartConversationDataModel(BaseModel):
-    dialogue: str = Field(..., description="这是你要说话的内容", example='罗马！你的行为让我觉得厌恶，我要用我的铁骑踏平你的领土！')
+    dialogue: str = Field(
+        ...,
+        description="这是你要说话的内容",
+        examples=["罗马！你的行为让我觉得厌恶，我要用我的铁骑踏平你的领土！"],
+    )
 
 
 class ItemDataModel(BaseModel):
-    category: Literal['Gold', 'City', 'Luxury', 'Resource'] = Field(..., description="项目的类别", example='Gold')
-    item: Literal['Gold', 'Capital', 'Tokyo', 'Rome', 'Any', 'Ivory', 'Citrus', 'Furs', 'Silk', 'Dyes', 'Copper', 'Salt', 'Silver', 'Stone', 'Gems', 'Truffles', 'Spices', 'Marble', 'Sugar', 'Whales', 'Porcelain', 'Crab', 'Pearls', 'Cotton', 'Jewelry', 'Incense', 'Wine', 'Iron', 'Horse', 'Oil', 'Uranium', 'Coal', 'Aluminum']\
-        = Field(..., description="要标识的项目", example='Gold')
-    amount: str = Field(..., description="项目的数量", example=200)
+    category: Literal["Gold", "City", "Luxury", "Resource"] = Field(..., description="项目的类别", examples=["Gold"])
+    item: Literal[
+        "Gold",
+        "Capital",
+        "Tokyo",
+        "Rome",
+        "Any",
+        "Ivory",
+        "Citrus",
+        "Furs",
+        "Silk",
+        "Dyes",
+        "Copper",
+        "Salt",
+        "Silver",
+        "Stone",
+        "Gems",
+        "Truffles",
+        "Spices",
+        "Marble",
+        "Sugar",
+        "Whales",
+        "Porcelain",
+        "Crab",
+        "Pearls",
+        "Cotton",
+        "Jewelry",
+        "Incense",
+        "Wine",
+        "Iron",
+        "Horse",
+        "Oil",
+        "Uranium",
+        "Coal",
+        "Aluminum",
+    ] = Field(..., description="要标识的项目", examples=["Gold"])
+    amount: str = Field(..., description="项目的数量", examples=[200])
 
 
 class AskForObjectIdentifyDataModel(BaseModel):
-    demand: List[ItemDataModel] = Field(..., description="要识别的项目列表",
-                                        example=[{"category": "Gold", "item": "Gold", "amount": 200},
-                                        {"category": "Luxury", "item": "Ivory", "amount": "Any"}])
+    demand: List[ItemDataModel] = Field(
+        ...,
+        description="要识别的项目列表",
+        examples=[
+            [
+                {"category": "Gold", "item": "Gold", "amount": 200},
+                {"category": "Luxury", "item": "Ivory", "amount": "Any"},
+            ]
+        ],
+    )
 
 
 class IntentionUnderstandingDataModel(BaseModel):
-    reply: str = Field(..., description="意图理解的答复",
-                       example='这是对意图理解的回答')
-    intention: Literal['ask_for_object', 'form_ally', 'friendly_statement', 'mutual_defense', 'open_border', 'propose_trade', 'research_agreement', 'seek_peace', 'common_enemy', 'chat', 'nonsense']\
-        = Field(..., description="文明的意图", example='chat')
-    degree: Literal['strong', 'weak']  = Field(..., description="意图的强弱程度", example='strong')
+    reply: str = Field(..., description="意图理解的答复", examples=["这是对意图理解的回答"])
+    intention: Literal[
+        "ask_for_object",
+        "form_ally",
+        "friendly_statement",
+        "mutual_defense",
+        "open_border",
+        "propose_trade",
+        "research_agreement",
+        "seek_peace",
+        "common_enemy",
+        "chat",
+        "nonsense",
+    ] = Field(..., description="文明的意图", examples=["chat"])
+    degree: Literal["strong", "weak"] = Field(..., description="意图的强弱程度", examples=["strong"])
 
 
 class DoubleCheckDataModel(BaseModel):
-    doublecheck: Literal['yes', 'no', 'continue', 'none'] = Field(..., description="文明的双重检查,yes or no", example='yes')
+    doublecheck: Literal["yes", "no", "continue", "none"] = Field(
+        ..., description="文明的双重检查,yes or no", examples=["yes"]
+    )
 
 
 class BargainBuyerDataModel(BaseModel):
-    Reasoning: str = Field(..., description="买方的理由", example='这是买方的理由')
-    Decision: Literal['yes', 'no', 'close'] = Field(..., description="买方的决定,yes or no or close", example='yes')
-    Response: str = Field(..., description="买方的回答", example='这是买方的回答')
+    Reasoning: str = Field(..., description="买方的理由", examples=["这是买方的理由"])
+    Decision: Literal["yes", "no", "close"] = Field(..., description="买方的决定,yes or no or close", examples=["yes"])
+    Response: str = Field(..., description="买方的回答", examples=["这是买方的回答"])
 
 
 class BargainSellerDataModel(BaseModel):
-    Reasoning: str = Field(..., description="卖方的理由", example='这是卖方的理由')
-    Decision: Literal['yes', 'no', 'close'] = Field(..., description="卖方的决定,yes or no or close", example='yes')
-    Response: str = Field(..., description="卖方的回答", example='这是卖方的回答')
+    Reasoning: str = Field(..., description="卖方的理由", examples=["这是卖方的理由"])
+    Decision: Literal["yes", "no", "close"] = Field(..., description="卖方的决定,yes or no or close", examples=["yes"])
+    Response: str = Field(..., description="卖方的回答", examples=["这是卖方的回答"])

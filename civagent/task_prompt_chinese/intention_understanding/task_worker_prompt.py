@@ -1,4 +1,7 @@
-from civagent.task_prompt_chinese.prompt_hub import IntentionUnderstandingDataModel, DoubleCheckDataModel
+from civagent.task_prompt_chinese.prompt_hub import (
+    DoubleCheckDataModel,
+    IntentionUnderstandingDataModel,
+)
 
 IntentionUnderstandingPrompt = """任务介绍：请你根据上述对话内容完成下面的任务：
 请你识别出{speaker_persona[civ_name]}的基本意图，不需要多余的猜测与推断延伸， 可能的选项有{intention_space}。

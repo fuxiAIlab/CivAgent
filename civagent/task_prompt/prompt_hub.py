@@ -1,6 +1,6 @@
+from typing import List, Literal
+
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Literal
-from enum import Enum
 
 AgentPrompt_react = """
 Background: This is "Civilization 5" game, each player plays a different country, through various diplomatic means, and finally through military conquest to achieve the goal of victory in the game.
@@ -52,7 +52,7 @@ Your recent plans is {last_plans},
 Keep in mind that you're {receiver_persona[civ_name]} from Civ V.
 You now want to analyze the current game situation, using json output.
 
- 
+
 """
 AgentPrompt_reply_noworkflow = """
 Background: This is "Civilization 5" game, each player plays a different country, through various diplomatic means, and finally through military conquest to achieve the goal of victory in the game.
@@ -322,7 +322,6 @@ diplomatic_memory = {
     "seek_peace": "{civ_name} asks {to_civ} for peace with {offer_gold_amount}, {to_civ}{decision_str}.",
     "research_agreement": "{civ_name} has entered into a research agreement with {to_civ}{to_civ}{decision_str}.",
     "propose_trade": "{civ_name} proposes a trade to {to_civ}{to_civ}{decision_str}.",
-
 }
 diplomatic_memory_oppo = {
     "buy_luxury": "{civ_name} buys {civ2_resource_dict}, {to_civ}{decision_str} luxury from {to_civ} with {civ1_resource_dict[Gold]} gold each turn.",
@@ -338,96 +337,277 @@ diplomatic_memory_oppo = {
 
 
 class FunctionArg(BaseModel):
-    name: Literal['buy_luxury', 'cheat', 'change_closeness', 'declare_war', 'form_ally', 'common_enemy', 'seek_peace', 'research_agreement'] \
-        = Field(..., description="The name of the function", example="buy_luxury")
-    arguments: dict = Field(..., description="The arguments of the function", example={'to_civ': 'egypt', 'demand_luxury': 'Ivory', 'offer_gold_per_turn': 10})
+    name: Literal[
+        "buy_luxury",
+        "cheat",
+        "change_closeness",
+        "declare_war",
+        "form_ally",
+        "common_enemy",
+        "seek_peace",
+        "research_agreement",
+    ] = Field(..., description="The name of the function", examples=["buy_luxury"])
+    arguments: dict = Field(
+        ...,
+        description="The arguments of the function",
+        examples=[
+            {
+                "to_civ": "egypt",
+                "demand_luxury": "Ivory",
+                "offer_gold_per_turn": 10,
+            }
+        ],
+    )
 
 
 class FunctionDataModel(BaseModel):
-    function: FunctionArg = Field(..., description="The function to be used in the task", example={'name': 'change_closeness', 'arguments': {'to_civ': 'greece', 'relation': 'FAVORABLE'}})
+    function: FunctionArg = Field(
+        ...,
+        description="The function to be used in the task",
+        examples=[
+            {
+                "name": "change_closeness",
+                "arguments": {"to_civ": "greece", "relation": "FAVORABLE"},
+            }
+        ],
+    )
 
 
 class SkillDataModel(BaseModel):
-    functions: List[FunctionDataModel] = Field(..., description="The list of functions to be used in the task", example=[
-        {'function': {'name': 'buy_luxury', 'arguments': {'to_civ': 'egypt', 'demand_luxury': 'Ivory', 'offer_gold_per_turn': 10}}},
-        {'function': {'name': 'cheat', 'arguments': {'to_civ': 'aztecs', 'fake_news': 'Egypt is planning to attack you'}}},
-        {'function': {'name': 'change_closeness', 'arguments': {'to_civ': 'greece', 'relation': 'FAVORABLE'}}}
-    ])
+    functions: List[FunctionDataModel] = Field(
+        ...,
+        description="The list of functions to be used in the task",
+        examples=[
+            [
+                {
+                    "function": {
+                        "name": "buy_luxury",
+                        "arguments": {
+                            "to_civ": "egypt",
+                            "demand_luxury": "Ivory",
+                            "offer_gold_per_turn": 10,
+                        },
+                    }
+                },
+                {
+                    "function": {
+                        "name": "cheat",
+                        "arguments": {
+                            "to_civ": "aztecs",
+                            "fake_news": "Egypt is planning to attack you",
+                        },
+                    }
+                },
+                {
+                    "function": {
+                        "name": "change_closeness",
+                        "arguments": {"to_civ": "greece", "relation": "FAVORABLE"},
+                    }
+                },
+            ]
+        ],
+    )
 
 
 class ReflectionDataModel(BaseModel):
-    reflection: str = Field(..., description="The reflection of the civ", example='This is reflection.')
+    reflection: str = Field(..., description="The reflection of the civ", examples=["This is reflection."])
 
 
 class AnalyzeDataModel(BaseModel):
-    analysis: str = Field(..., description="The analysis of the civ", example='This is the current game analysis')
+    analysis: str = Field(
+        ...,
+        description="The analysis of the civ",
+        examples=["This is the current game analysis"],
+    )
 
 
 class DecisionDataModel(BaseModel):
-    decision: Literal['yes', 'no'] = Field(..., description="The decision of the civ,yes or no", example='yes')
+    decision: Literal["yes", "no"] = Field(..., description="The decision of the civ,yes or no", examples=["yes"])
 
 
 class ChooseTechDataModel(BaseModel):
-    decision: str = Field(..., description="The technology to be chosen", example='Machinery')
+    decision: str = Field(..., description="The technology to be chosen", examples=["Machinery"])
 
 
 class ChooseProductionDataModel(BaseModel):
-    decision: dict = Field(..., description="The production to be chosen", example={'Rome': 'Artillery', 'Antium': 'Battleship', 'Neapolis': 'Carrier', 'Ravenna': 'Destroyer'})
+    decision: dict = Field(
+        ...,
+        description="The production to be chosen",
+        examples=[
+            {
+                "Rome": "Artillery",
+                "Antium": "Battleship",
+                "Neapolis": "Carrier",
+                "Ravenna": "Destroyer",
+            }
+        ],
+    )
 
 
 class PlanDataModel(BaseModel):
-    long_term: str = Field(..., description="The long term plan of the civ", example='This is the long term plan')
-    short_term: str = Field(..., description="The short term plan of the civ", example='This is the short term plan')
+    long_term: str = Field(
+        ...,
+        description="The long term plan of the civ",
+        examples=["This is the long term plan"],
+    )
+    short_term: str = Field(
+        ...,
+        description="The short term plan of the civ",
+        examples=["This is the short term plan"],
+    )
 
 
 class RecognitionDataModel(BaseModel):
-    Decision: Literal['True', 'False'] = Field(..., description="The decision of the civ,True or False", example='True')
-    Reason: str = Field(..., description="The reason of the decision", example='This is your reason')
+    Decision: Literal["True", "False"] = Field(
+        ..., description="The decision of the civ,True or False", examples=["True"]
+    )
+    Reason: str = Field(..., description="The reason of the decision", examples=["This is your reason"])
 
 
 class ReplySimulationDataModel(BaseModel):
-    yes: str = Field(..., description="The game situation after consent", example='This is the game situation after consent')
-    no: str = Field(..., description="The game situation after disagreeing", example='This is the game situation after disagreeing')
+    yes: str = Field(
+        ...,
+        description="The game situation after consent",
+        examples=["This is the game situation after consent"],
+    )
+    no: str = Field(
+        ...,
+        description="The game situation after disagreeing",
+        examples=["This is the game situation after disagreeing"],
+    )
 
 
 class ReplyEvaluationDataModel(BaseModel):
-    yes: str = Field(..., description="The evaluation of the game situation after agreeing", example='This is the evaluation of the game situation after agreeing')
-    no: str = Field(..., description="The evaluation of the game situation after disagreeing", example='This is the evaluation of the game situation after disagreeing')
+    yes: str = Field(
+        ...,
+        description="The evaluation of the game situation after agreeing",
+        examples=["This is the evaluation of the game situation after agreeing"],
+    )
+    no: str = Field(
+        ...,
+        description="The evaluation of the game situation after disagreeing",
+        examples=["This is the evaluation of the game situation after disagreeing"],
+    )
 
 
 class StartConversationDataModel(BaseModel):
-    dialogue: str = Field(..., description="The dialogue to start the conversation", example='Rome! Your behavior makes me feel disgusted, I will use my iron horse to level your territory!')
+    dialogue: str = Field(
+        ...,
+        description="The dialogue to start the conversation",
+        examples=["Rome! Your behavior makes me feel disgusted, I will use my iron horse to level your territory!"],
+    )
 
 
 class ItemDataModel(BaseModel):
-    category: Literal['Gold', 'City', 'Luxury', 'Resource'] = Field(..., description="The category of the item", example='Gold')
-    item: Literal['Gold', 'Capital', 'Tokyo', 'Rome', 'Any', 'Ivory', 'Citrus', 'Furs', 'Silk', 'Dyes', 'Copper', 'Salt', 'Silver', 'Stone', 'Gems', 'Truffles', 'Spices', 'Marble', 'Sugar', 'Whales', 'Porcelain', 'Crab', 'Pearls', 'Cotton', 'Jewelry', 'Incense', 'Wine', 'Iron', 'Horse', 'Oil', 'Uranium', 'Coal', 'Aluminum']\
-        = Field(..., description="The item to be identified", example='Gold')
-    amount: str = Field(..., description="The amount of the item", example=200)
+    category: Literal["Gold", "City", "Luxury", "Resource"] = Field(
+        ..., description="The category of the item", examples=["Gold"]
+    )
+    item: Literal[
+        "Gold",
+        "Capital",
+        "Tokyo",
+        "Rome",
+        "Any",
+        "Ivory",
+        "Citrus",
+        "Furs",
+        "Silk",
+        "Dyes",
+        "Copper",
+        "Salt",
+        "Silver",
+        "Stone",
+        "Gems",
+        "Truffles",
+        "Spices",
+        "Marble",
+        "Sugar",
+        "Whales",
+        "Porcelain",
+        "Crab",
+        "Pearls",
+        "Cotton",
+        "Jewelry",
+        "Incense",
+        "Wine",
+        "Iron",
+        "Horse",
+        "Oil",
+        "Uranium",
+        "Coal",
+        "Aluminum",
+    ] = Field(..., description="The item to be identified", examples=["Gold"])
+    amount: str = Field(..., description="The amount of the item", examples=[200])
 
 
 class AskForObjectIdentifyDataModel(BaseModel):
-    demand: List[ItemDataModel] = Field(..., description="The list of items to be identified", example=[{"category": "Gold", "item": "Gold", "amount": 200}, {"category": "Luxury", "item": "Ivory", "amount": "Any"}])
+    demand: List[ItemDataModel] = Field(
+        ...,
+        description="The list of items to be identified",
+        examples=[
+            [
+                {"category": "Gold", "item": "Gold", "amount": 200},
+                {"category": "Luxury", "item": "Ivory", "amount": "Any"},
+            ]
+        ],
+    )
 
 
 class IntentionUnderstandingDataModel(BaseModel):
-    reply: str = Field(..., description="The reply to the intention understanding", example='This is the reply to the intention understanding')
-    intention: Literal['ask_for_object', 'form_ally', 'friendly_statement', 'mutual_defense', 'open_border', 'propose_trade', 'research_agreement', 'seek_peace', 'common_enemy', 'chat', 'nonsense']\
-        = Field(..., description="The intention of the civ", example='chat')
-    degree: Literal['strong', 'weak'] = Field(..., description="The degree of the intention", example='strong')
+    reply: str = Field(
+        ...,
+        description="The reply to the intention understanding",
+        examples=["This is the reply to the intention understanding"],
+    )
+    intention: Literal[
+        "ask_for_object",
+        "form_ally",
+        "friendly_statement",
+        "mutual_defense",
+        "open_border",
+        "propose_trade",
+        "research_agreement",
+        "seek_peace",
+        "common_enemy",
+        "chat",
+        "nonsense",
+    ] = Field(..., description="The intention of the civ", examples=["chat"])
+    degree: Literal["strong", "weak"] = Field(..., description="The degree of the intention", examples=["strong"])
 
 
 class DoubleCheckDataModel(BaseModel):
-    doublecheck: Literal['yes', 'no', 'continue', 'none'] = Field(..., description="The double check of the civ,yes or no", example='yes')
+    doublecheck: Literal["yes", "no", "continue", "none"] = Field(
+        ..., description="The double check of the civ,yes or no", examples=["yes"]
+    )
 
 
 class BargainBuyerDataModel(BaseModel):
-    Reasoning: str = Field(..., description="The reasoning of the buyer", example='This is the reasoning of the buyer')
-    Decision: Literal['yes', 'no', 'close']= Field(..., description="The decision of the buyer,yes or no or close", example='yes')
-    Response: str = Field(..., description="The response of the buyer", example='This is the response of the buyer')
+    Reasoning: str = Field(
+        ...,
+        description="The reasoning of the buyer",
+        examples=["This is the reasoning of the buyer"],
+    )
+    Decision: Literal["yes", "no", "close"] = Field(
+        ..., description="The decision of the buyer,yes or no or close", examples=["yes"]
+    )
+    Response: str = Field(
+        ...,
+        description="The response of the buyer",
+        examples=["This is the response of the buyer"],
+    )
 
 
 class BargainSellerDataModel(BaseModel):
-    Reasoning: str = Field(..., description="The reasoning of the seller", example='This is the reasoning of the seller')
-    Decision: Literal['yes', 'no', 'close'] = Field(..., description="The decision of the seller,yes or no or close", example='yes')
-    Response: str = Field(..., description="The response of the seller", example='This is the response of the seller')
+    Reasoning: str = Field(
+        ...,
+        description="The reasoning of the seller",
+        examples=["This is the reasoning of the seller"],
+    )
+    Decision: Literal["yes", "no", "close"] = Field(
+        ..., description="The decision of the seller,yes or no or close", examples=["yes"]
+    )
+    Response: str = Field(
+        ...,
+        description="The response of the seller",
+        examples=["This is the response of the seller"],
+    )

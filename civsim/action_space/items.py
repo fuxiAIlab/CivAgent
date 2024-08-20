@@ -2,7 +2,7 @@ item_category_space = {
     "Gold": "Gold",
     "City": "City",
     "Luxury": "Luxury",
-    "Resource": "Resource"
+    "Resource": "Resource",
 }
 
 luxury_space = {
@@ -28,8 +28,7 @@ luxury_space = {
     "Cotton": "cotton",
     "Jewelry": "jewelry",
     "Incense": "incense",
-    "Wine": "Wine"
-
+    "Wine": "Wine",
 }
 luxury_space_list = list(luxury_space.keys())
 
@@ -40,7 +39,7 @@ resource_space = {
     "Oil": "Oil",
     "Uranium": "Uranium",
     "Coal": "Coal",
-    "Aluminum": "Aluminum"
+    "Aluminum": "Aluminum",
 }
 
 resource_space_list = list(resource_space.keys())

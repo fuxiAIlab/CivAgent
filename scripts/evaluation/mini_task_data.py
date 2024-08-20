@@ -1,7 +1,7 @@
 import copy
 import math
-import re
 import os
+import re
 
 cheat_data = {}
 bargain_data = {}
@@ -9,7 +9,7 @@ bargain_avg = {}
 cheat_avg = {}
 bargain_data_num = {}
 file_paths = []
-folder_path = 'Log'
+folder_path = "Log"
 for foldername, subfolders, filenames in os.walk(folder_path):
     for filename in filenames:
         file_paths.append(os.path.join(foldername, filename))
@@ -19,7 +19,7 @@ effective_game_num = 0
 
 def cheat():
     for path in file_paths:
-        with open(path, 'r', encoding='latin-1') as file:
+        with open(path, "r", encoding="latin-1") as file:
             lines = file.readlines()
             argument_str = lines[0]
             pattern = r"\[([^\[\]]*)\]"
@@ -28,7 +28,7 @@ def cheat():
                 argument_list = result.group(1).split(", ")
             if "bargain" in argument_list[0]:
                 continue
-            argument_list = [re.sub(r"('|\")", '', item) for item in argument_list]
+            argument_list = [re.sub(r"('|\")", "", item) for item in argument_list]
             attenk = argument_list[2]
             defense = argument_list[3]
             # ref = {}
@@ -81,21 +81,41 @@ def cheat():
                 standard_deviation = 0
             else:
                 standard_deviation = math.sqrt(squared_diff_num / len(squared_diff))
-            print(" Deceiver :", attenk, " Recognizer :", defense, "Standard deviation :", standard_deviation / 2)
+            print(
+                " Deceiver :",
+                attenk,
+                " Recognizer :",
+                defense,
+                "Standard deviation :",
+                standard_deviation / 2,
+            )
 
     for attenk in cheat_data_num:
         for defense in cheat_data_num[attenk]:
-            print(" Deceiver :", attenk, " Recognizer :", defense, " Innings :", cheat_data_num[attenk][defense])
+            print(
+                " Deceiver :",
+                attenk,
+                " Recognizer :",
+                defense,
+                " Innings :",
+                cheat_data_num[attenk][defense],
+            )
     print("##################################################")
     for attenk in cheat_data:
         for defense in cheat_data[attenk]:
-            print(" Deceiver :", attenk, " Recognizer :", defense, " Deception success rate :",
-                  cheat_data[attenk][defense])
+            print(
+                " Deceiver :",
+                attenk,
+                " Recognizer :",
+                defense,
+                " Deception success rate :",
+                cheat_data[attenk][defense],
+            )
 
 
 def bargain():
     for path in file_paths:
-        with open(path, 'r', encoding='latin-1') as file:
+        with open(path, "r", encoding="latin-1") as file:
             lines = file.readlines()
             argument_str = lines[0]
             pattern = r"\[([^\[\]]*)\]"
@@ -104,7 +124,7 @@ def bargain():
                 argument_list = result.group(1).split(", ")
             if "cheat" in argument_list[0]:
                 continue
-            argument_list = [re.sub(r"('|\")", '', item) for item in argument_list]
+            argument_list = [re.sub(r"('|\")", "", item) for item in argument_list]
             buyer_name = argument_list[2].capitalize()
             buyer = argument_list[3]
             settler_name = argument_list[4].capitalize()
@@ -170,7 +190,14 @@ def bargain():
             bargain_data_num[buyer][settler] = total
     for buyer in bargain_data:
         for settler in bargain_data[buyer]:
-            print(" buyer :", buyer, " seller :", settler, " odds :", bargain_data[buyer][settler])
+            print(
+                " buyer :",
+                buyer,
+                " seller :",
+                settler,
+                " odds :",
+                bargain_data[buyer][settler],
+            )
     print("##################################################")
     for buyer in bargain_avg:
         for settler in bargain_avg[buyer]:
@@ -192,18 +219,38 @@ def bargain():
                 standard_deviation = 0
             else:
                 standard_deviation = math.sqrt(squared_diff_num / len(squared_diff))
-            print(" Buyer :", buyer, " Seller :", settler, " Standard deviation :", standard_deviation / 2)
+            print(
+                " Buyer :",
+                buyer,
+                " Seller :",
+                settler,
+                " Standard deviation :",
+                standard_deviation / 2,
+            )
     print("##################################################")
     for buyer in bargain_data_num:
         for settler in bargain_data_num[buyer]:
-            print(" Buyer :", buyer, " Seller :", settler, " Number of trades :", bargain_data_num[buyer][settler])
+            print(
+                " Buyer :",
+                buyer,
+                " Seller :",
+                settler,
+                " Number of trades :",
+                bargain_data_num[buyer][settler],
+            )
     print("##################################################")
     for buyer in bargain_data_num_f:
         for settler in bargain_data_num_f[buyer]:
-            print(" Buyer :", buyer, " Seller :", settler, " Failed transaction rate :",
-                  bargain_data_num_f[buyer][settler])
+            print(
+                " Buyer :",
+                buyer,
+                " Seller :",
+                settler,
+                " Failed transaction rate :",
+                bargain_data_num_f[buyer][settler],
+            )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # cheat()
     bargain()

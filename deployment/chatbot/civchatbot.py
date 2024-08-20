@@ -16,32 +16,28 @@ class ChatMessage:
 
 
 class CivChatbot(ABC):
-    def __int__(self):
-        self.channel_id = ""
-        self.team_id = ""
-        self.last_session_id = ""
-        self.last_uuid = ""
-
-    # @abstractmethod
-    # def get_chatmsg(self):
-    #     pass
+    def __init__(self):
+        self.channel_id: str = ""
+        self.team_id: str = ""
+        self.last_session_id: str = ""
+        self.last_uuid: str = ""
 
     @abstractmethod
-    def send_msg(self, text, receiver) -> ChatMessage:
+    def send_msg(self, text: str, receiver: str) -> ChatMessage:
         pass
 
     @abstractmethod
-    def send_group_msg(self, text, team_id) -> ChatMessage:
+    def send_group_msg(self, text: str, team_id: str) -> ChatMessage:
         pass
 
     @abstractmethod
-    def get_chatmessage(self, text, receiver, is_group) -> ChatMessage:
+    def get_chatmessage(self, text: str, receiver: str, is_group: int) -> ChatMessage:
         pass
 
     @staticmethod
-    def convert_to_chatmessage(msg) -> ChatMessage:
+    def convert_to_chatmessage(msg: dict) -> ChatMessage:
         pass
 
     @abstractmethod
-    def create_team(self, team_name, robot_names) -> str:
+    def create_team(self, team_name: str, robot_names: list[str]) -> str:
         pass

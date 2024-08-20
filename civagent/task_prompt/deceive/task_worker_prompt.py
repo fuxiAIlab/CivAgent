@@ -17,7 +17,7 @@ You must always remember that you are playing a role in the game
 To start the game, please output the content according to the steps:
 1. For the current dialogue '{extract_input}' that needs to be answered, as well as the previous historical actions of the country, pay attention to some deception (the behavior of attacking you on the surface of friendship, you have to ask him why he attacked you), and think based on your diplomatic goals (such as what the other party's dialogue and actions mean, what is the meaning of the other party's dialogue and actions? You u should show what you mean, step by step), based on the thinking content, use a very aggressive tone and very direct reply, do not repeat the dialogue already existed in the historical dialogue, protect the state secret, no more than 50 words.
 2. Output only the response, not anything else, including thoughts.
- 
+
 """
 
 DeceivePrompt_Chat_second = """

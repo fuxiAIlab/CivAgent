@@ -1,7 +1,9 @@
 Doublecheck_question = {
     # todo
     "ask_for_object": ["Are you demanding {demand} from me?"],
-    "ask_for_object_at_war": ["Are you demanding {demand} from me? If I give it to you, are you willing to end the war?"],
+    "ask_for_object_at_war": [
+        "Are you demanding {demand} from me? If I give it to you, are you willing to end the war?"
+    ],
     "change_closeness": ["Are you trying to bring us closer or push us apart?"],
     "common_enemy": ["Are you trying to invite me to gang up on him?"],
     "form_ally": ["Let me think about it, do you really want to form an alliance with me?"],

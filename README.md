@@ -1,14 +1,14 @@
 # CivAgent: Large Language Models based Human-like Agent
 
-English | [中文](README_chinese.md) |
+English | [中文](docs/README_chinese.md) |
 <p align="center" width="100%">
 
 [![Demo Video](https://res.cloudinary.com/marcomontalbano/image/upload/v1719391630/video_to_markdown/images/youtube--AapuuHgzXqE-c05b58ac6eb4c4700831b2b3070cd403.jpg)](https://www.youtube.com/watch?v=AapuuHgzXqE "Demo Video")
 
 CivAgent is an LLM-based Human-like Agent acting as a Digital Player within the strategy game [Unciv](https://github.com/yairm210/Unciv).
-The project aims to address the difficulty of players not being able to find human playmates, 
-and seeks to construct a low-cost data flywheel to aid in the research of LLM-based Agents. 
-By deeply integrating Large Language Models (LLMs) with core gameplay, 
+The project aims to address the difficulty of players not being able to find human playmates,
+and seeks to construct a low-cost data flywheel to aid in the research of LLM-based Agents.
+By deeply integrating Large Language Models (LLMs) with core gameplay,
 we believe this is exactly an AI Native Game. All glory are attributed to Unciv.
 
 
@@ -18,7 +18,7 @@ Native Unciv: https://github.com/yairm210/Unciv
 Unciv Wiki: https://civilization.fandom.com/wiki/Unciv
 
 Game Client Download (developer version, no Discord chat function): [Mac](https://drive.google.com/file/d/1Ohx6pvcdZbVzte0cAaXPHEAIRpJ2obqK/view?usp=sharing)   [Windows](https://drive.google.com/file/d/1ap99uZnhcpgIkDgJKAaPk277bTBi34Ag/view?usp=sharing)
-  
+
 Game Client Download (player version, with Discord chat function, to be released in early August)
 
 Unciv We Used (source code): https://github.com/asdqsczser/Unciv/tree/release/fuxi_ver
@@ -37,6 +37,9 @@ YouTube: https://www.youtube.com/playlist?list=PL9G00-od8ezYNblsqMca7urrLoHSZ7Vs
 
 ## 👨‍💻 Developers
 Please refer to [Documentation](/docs/README_for_developer_chinese.md).
+
+## 🙋 Contribution
+Please refer to [Documentation](/docs/README_for_contribution.md).
 
 ## ⚡ How to play
 The AI service can only be used in the multiplayer game mode and is only supported on the Windows and Mac platform.

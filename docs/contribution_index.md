@@ -1,0 +1,1 @@
+--8<-- "docs/README_for_contribution.md"

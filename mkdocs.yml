@@ -1,0 +1,59 @@
+site_name: CivAgent
+repo_url: https://github.com/fuxiAIlab/CivAgent
+repo_name: civagent
+edit_uri: edit/main/docs/
+site_description: CivAgent is an LLM-based Human-like Agent acting as a Digital Player within the Strategy Game Unciv.
+site_author: https://openreview.net/forum?id=AuT65qKLrr
+copyright: Copyright &copy; 2024~Now Collective Intelligence Algorithm Group, FUXI AI Lab, NetEase
+
+# Page tree
+nav:
+  - Home: index.md
+  - Developer: developer_index.md
+  - Contribution: contribution_index.md
+  - Changelog: changelog_index.md
+
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/gitlab
+  language: en
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: deep purple
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: cyan
+      accent: deep purple
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+  features:
+    - content.action.edit
+    - content.action.view
+    - announce.dismiss
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+    - header.autohide
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.indexes
+    - navigation.prune
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+    # - toc.integrate
+    - content.code.annotate
+
+docs_dir: docs

@@ -15,7 +15,7 @@ You need to analyze the latest conversation between you and output the results i
 2. Your output should have the characteristics of everyday English conversation
 3. In the above conversation, you are at peace, he asks you for {asked_object} and threatens you, your decision result is {decision_result} and your decision reason is {decision_reason}
 4. Keep your words within {maxTokens}, and explain your thoughts in one sentence, using double quotes
- 
+
 """
 
 AskForObjectPrompt_Chat_Config = {

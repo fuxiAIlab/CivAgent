@@ -1,14 +1,26 @@
-import ujson as json
-from civsim import utils, logger
+from __future__ import annotations
+
 from functools import partial
-from civsim.utils import fix_civ_name
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple
+
+import ujson as json
+
+from civsim import logger, utils
+
+if TYPE_CHECKING:
+    from civagent.civagent import CivAgent
 
 
 class SkillException(Exception):
     pass
 
 
-def exec_skill(save_data, civ_agent, skill_name, skill_param):
+def exec_skill(
+    save_data: Dict[str, Any],
+    civ_agent: Any,
+    skill_name: str,
+    skill_param: Dict[str, Any],
+) -> Any:
     skill_fn_dict = {
         "buy_luxury": partial(skill_buy_luxury, save_data, civ_agent),
         "cheat": partial(skill_cheat, save_data, civ_agent),
@@ -20,20 +32,26 @@ def exec_skill(save_data, civ_agent, skill_name, skill_param):
         "propose_trade": partial(skill_propose_trade, save_data, civ_agent),
         "change_closeness": partial(skill_change_closeness, save_data, civ_agent),
     }
-    if 'to_civ' in skill_param:
+    if "to_civ" in skill_param:
         skill_param["to_civ"] = skill_param["to_civ"].replace(" ", "").replace(":", "").replace("：", "")
     result = skill_fn_dict[skill_name](**skill_param)
     return result
 
 
-def skill_buy_luxury(save_data, civ_agent, to_civ, demand_luxury, offer_gold_per_turn=10):
+def skill_buy_luxury(
+    save_data: Dict[str, Any],
+    civ_agent: CivAgent,
+    to_civ: str,
+    demand_luxury: str,
+    offer_gold_per_turn: int = 10,
+) -> Dict[str, Any]:
     to_civ = to_civ.lower()
     resources = utils.get_all_resources(save_data)
     if to_civ not in utils.get_all_civs(save_data):
-        return
+        return {}
         # raise SkillException(f"The target civilization {to_civ} does not exist")
     elif demand_luxury.lower() not in [x.lower() for x in resources[to_civ]]:
-        return
+        return {}
         # raise SkillException(f"The target civilization {to_civ} has no {demand_luxury} luxury")
     else:
         param = {
@@ -41,22 +59,20 @@ def skill_buy_luxury(save_data, civ_agent, to_civ, demand_luxury, offer_gold_per
             "civ_name": civ_agent.civ_name,
             "civ_name_1": civ_agent.civ_name,
             "civ_name_2": to_civ,
-            "civ1_resource_dict": {
-                "Gold": offer_gold_per_turn
-            },
-            "civ2_resource_dict": {
-                demand_luxury: 1
-            }
+            "civ1_resource_dict": {"Gold": offer_gold_per_turn},
+            "civ2_resource_dict": {demand_luxury: 1},
         }
         return {
             "skill_name": "buy_luxury",
             "intention": "propose_trade",
             "to_civ": to_civ,
-            "param": param
+            "param": param,
         }
 
 
-def skill_change_closeness(save_data, civ_agent, to_civ, relation):
+def skill_change_closeness(
+    save_data: Dict[str, Any], civ_agent: CivAgent, to_civ: str, relation: str
+) -> Dict[str, Any]:
     to_civ = to_civ.lower()
     next_relation = utils.change_relation_level(relation, alter=1)
     if to_civ not in utils.get_all_civs(save_data):
@@ -70,12 +86,12 @@ def skill_change_closeness(save_data, civ_agent, to_civ, relation):
                 "civ_name": civ_agent.civ_name,
                 "to_civ": to_civ,
                 "relation": relation,
-                "next_relation": next_relation
-            }
+                "next_relation": next_relation,
+            },
         }
 
 
-def skill_cheat(save_data, civ_agent, to_civ, fake_news):
+def skill_cheat(save_data: Dict[str, Any], civ_agent: Any, to_civ: str, fake_news: str) -> Dict[str, Any]:
     to_civ = to_civ.lower()
     if to_civ not in utils.get_all_civs(save_data):
         raise SkillException(f"The target civilization {to_civ} does not exist")
@@ -87,12 +103,12 @@ def skill_cheat(save_data, civ_agent, to_civ, fake_news):
             "param": {
                 "civ_name": civ_agent.civ_name,
                 "to_civ": to_civ,
-                "fake_news": fake_news
-            }
+                "fake_news": fake_news,
+            },
         }
 
 
-def skill_declare_war(save_data, civ_agent, to_civ):
+def skill_declare_war(save_data: Dict[str, Any], civ_agent: Any, to_civ: str) -> Dict[str, Any]:
     to_civ = to_civ.lower()
     if to_civ not in utils.get_all_civs(save_data):
         raise SkillException(f"The target civilization {to_civ} does not exist")
@@ -103,17 +119,17 @@ def skill_declare_war(save_data, civ_agent, to_civ):
             "to_civ": to_civ,
             "civ_name": civ_agent.civ_name,
             "civ_name_1": civ_agent.civ_name,
-            "civ_name_2": to_civ
+            "civ_name_2": to_civ,
         }
         return {
             "skill_name": "declare_war",
             "intention": "declare_war",
             "to_civ": to_civ,
-            "param": param
+            "param": param,
         }
 
 
-def skill_form_ally(save_data, civ_agent, to_civ):
+def skill_form_ally(save_data: Dict[str, Any], civ_agent: CivAgent, to_civ: str) -> Dict[str, Any]:
     to_civ = to_civ.lower()
     if to_civ not in utils.get_all_civs(save_data):
         raise SkillException(f"The target civilization {to_civ} does not exist")
@@ -124,17 +140,17 @@ def skill_form_ally(save_data, civ_agent, to_civ):
             "to_civ": to_civ,
             "civ_name": civ_agent.civ_name,
             "civ_name_1": civ_agent.civ_name,
-            "civ_name_2": to_civ
+            "civ_name_2": to_civ,
         }
         return {
             "skill_name": "form_ally",
             "intention": "form_ally",
             "to_civ": to_civ,
-            "param": param
+            "param": param,
         }
 
 
-def skill_common_enemy(save_data, civ_agent, to_civ, enemy_civ):
+def skill_common_enemy(save_data: Dict[str, Any], civ_agent: Any, to_civ: str, enemy_civ: str) -> Dict[str, Any]:
     to_civ, enemy_civ = to_civ.lower(), enemy_civ.lower()
     if enemy_civ.lower() not in utils.get_all_civs(save_data):
         raise SkillException(f"The target civilization {enemy_civ} does not exist")
@@ -147,21 +163,20 @@ def skill_common_enemy(save_data, civ_agent, to_civ, enemy_civ):
             "to_civ": to_civ,
             "enemy_civ": enemy_civ,
             "civ_name": civ_agent.civ_name,
-            "civ_name_1": [
-                civ_agent.civ_name,
-                to_civ
-            ],
-            "civ_name_2": enemy_civ
+            "civ_name_1": [civ_agent.civ_name, to_civ],
+            "civ_name_2": enemy_civ,
         }
         return {
             "skill_name": "common_enemy",
             "intention": "common_enemy",
             "to_civ": to_civ,
-            "param": param
+            "param": param,
         }
 
 
-def skill_seek_peace(save_data, civ_agent, to_civ, offer_gold=100):
+def skill_seek_peace(
+    save_data: Dict[str, Any], civ_agent: CivAgent, to_civ: str, offer_gold: int = 100
+) -> Dict[str, Any]:
     to_civ = to_civ.lower()
     if to_civ not in utils.get_all_civs(save_data):
         raise SkillException(f"The target civilization {to_civ} does not exist")
@@ -173,17 +188,17 @@ def skill_seek_peace(save_data, civ_agent, to_civ, offer_gold=100):
             "civ_name": civ_agent.civ_name,
             "civ_name_1": civ_agent.civ_name,
             "civ_name_2": to_civ,
-            "offer_gold_amount": offer_gold
+            "offer_gold_amount": offer_gold,
         }
         return {
             "skill_name": "seek_peace",
             "intention": "seek_peace",
             "to_civ": to_civ,
-            "param": param
+            "param": param,
         }
 
 
-def skill_research_agreement(save_data, civ_agent, to_civ):
+def skill_research_agreement(save_data: Dict[str, Any], civ_agent: CivAgent, to_civ: str) -> Dict[str, Any]:
     to_civ = to_civ.lower()
     if to_civ not in utils.get_all_civs(save_data):
         raise SkillException(f"The target civilization {to_civ} does not exist")
@@ -192,27 +207,38 @@ def skill_research_agreement(save_data, civ_agent, to_civ):
             "to_civ": to_civ,
             "civ_name": civ_agent.civ_name,
             "civ_name_1": civ_agent.civ_name,
-            "civ_name_2": to_civ
+            "civ_name_2": to_civ,
         }
         return {
             "skill_name": "research_agreement",
             "intention": "research_agreement",
             "to_civ": to_civ,
-            "param": param
+            "param": param,
         }
 
 
-def skill_propose_trade(save_data, civ_agent, to_civ, demand_resources, offer_resources):
+def skill_propose_trade(
+    save_data: Dict[str, Any],
+    civ_agent: CivAgent,
+    to_civ: str,
+    demand_resources: List[str],
+    offer_resources: List[str],
+) -> Dict[str, Any]:
     to_civ = to_civ.lower()
     resources = utils.get_all_resources(save_data)
     if to_civ not in utils.get_all_civs(save_data):
         raise SkillException(f"The target civilization {to_civ} does not exist")
     # todo Add resources such as gold and consider resources that have already been traded
-    elif any([demand_resource.lower() not in [x.lower() for x in resources[to_civ]]
-              for demand_resource in demand_resources]):
+    elif any(
+        [demand_resource.lower() not in [x.lower() for x in resources[to_civ]] for demand_resource in demand_resources]
+    ):
         raise SkillException(f"The target civilization {to_civ} does not have this resource")
-    elif any([offer_resource.lower() not in [x.lower() for x in resources[civ_agent.civ_name]]
-              for offer_resource in offer_resources]):
+    elif any(
+        [
+            offer_resource.lower() not in [x.lower() for x in resources[civ_agent.civ_name]]
+            for offer_resource in offer_resources
+        ]
+    ):
         raise SkillException(f"Our civilization {civ_agent.civ_name} does not have this resource")
     else:
         param = {
@@ -221,77 +247,85 @@ def skill_propose_trade(save_data, civ_agent, to_civ, demand_resources, offer_re
             "civ_name_1": civ_agent.civ_name,
             "civ_name_2": to_civ,
             "civ1_resource_dict": demand_resources,
-            "civ2_resource_dict": offer_resources
+            "civ2_resource_dict": offer_resources,
         }
         return {
             "skill_name": "propose_trade",
             "intention": "propose_trade",
             "to_civ": to_civ,
-            "param": param
+            "param": param,
         }
 
 
-def get_skills(skill_name, civ1_name, civ2_name, game_skill_data):
+def get_skills(
+    skill_name: str, civ1_name: str, civ2_name: str, game_skill_data: Dict[str, Any]
+) -> Tuple[str, Dict[str, Any]]:
     civ_name = civ1_name
-    if civ_name not in game_skill_data['skills']:
-        game_skill_data['skills'][civ_name] = []
-    if civ_name not in game_skill_data['skill_num']:
-        game_skill_data['skill_num'][civ_name] = 0
-    if skill_name == 'production_priority':
-        if (civ1_name not in game_skill_data['production']
-                and civ1_name not in game_skill_data['production']):
-            pair_dict = {'result': ''}
+    if civ_name not in game_skill_data["skills"]:
+        game_skill_data["skills"][civ_name] = []
+    if civ_name not in game_skill_data["skill_num"]:
+        game_skill_data["skill_num"][civ_name] = 0
+    if skill_name == "production_priority":
+        if civ1_name not in game_skill_data["production"] and civ1_name not in game_skill_data["production"]:
+            pair_dict = {"result": ""}
             result = json.dumps(pair_dict)
         else:
-            if (civ2_name not in game_skill_data['production'][civ1_name]
-                    and civ2_name not in game_skill_data['production'][civ1_name]):
-                pair_dict = {'result': ''}
+            if (
+                civ2_name not in game_skill_data["production"][civ1_name]
+                and civ2_name not in game_skill_data["production"][civ1_name]
+            ):
+                pair_dict = {"result": ""}
                 result = json.dumps(pair_dict)
             else:
-                pair_dict = {'result': game_skill_data['production'][civ1_name][civ2_name]}
+                pair_dict = {"result": game_skill_data["production"][civ1_name][civ2_name]}
                 result = json.dumps(pair_dict)
         return result, game_skill_data
-    elif skill_name == 'choose_technology':
-        if (civ1_name not in game_skill_data['tech']
-                and civ1_name not in game_skill_data['tech']):
-            pair_dict = {'result': ''}
+    elif skill_name == "choose_technology":
+        if civ1_name not in game_skill_data["tech"] and civ1_name not in game_skill_data["tech"]:
+            pair_dict = {"result": ""}
             result = json.dumps(pair_dict)
         else:
-            pair_dict = {'result': game_skill_data['tech'][civ1_name]}
+            pair_dict = {"result": game_skill_data["tech"][civ1_name]}
             result = json.dumps(pair_dict)
         return result, game_skill_data
-    elif skill_name == 'common_enemy':
-        for tool in game_skill_data['skills'][civ_name]:
-            if skill_name == tool['skill_name']:
-                pair_dict = {'result': 'true', 'to_civ': tool['to_civ'].capitalize(),
-                             'enemy_civ': tool['param']['enemy_civ'].capitalize()}
+    elif skill_name == "common_enemy":
+        for tool in game_skill_data["skills"][civ_name]:
+            if skill_name == tool["skill_name"]:
+                pair_dict = {
+                    "result": "true",
+                    "to_civ": tool["to_civ"].capitalize(),
+                    "enemy_civ": tool["param"]["enemy_civ"].capitalize(),
+                }
                 result = json.dumps(pair_dict)
                 logger.debug(
                     f"{civ1_name} uses the {skill_name} skill to invite {tool['to_civ']}"
                     + f"to attack {tool['param']['enemy_civ']} --success"
                 )
-                game_skill_data['skills'][civ_name].remove(tool)
-                game_skill_data['skill_num'][civ_name] += 1
+                game_skill_data["skills"][civ_name].remove(tool)
+                game_skill_data["skill_num"][civ_name] += 1
                 return result, game_skill_data
-    elif skill_name == 'buy_luxury':
-        for tool in game_skill_data['skills'][civ_name]:
-            if skill_name == tool['skill_name'] and civ2_name == tool['to_civ']:
-                pair_dict = {'result': 'true', 'gold': tool['param']['civ1_resource_dict']['Gold'],
-                             'luxury': next(iter(tool['param']['civ1_resource_dict']))}
+    elif skill_name == "buy_luxury":
+        for tool in game_skill_data["skills"][civ_name]:
+            if skill_name == tool["skill_name"] and civ2_name == tool["to_civ"]:
+                pair_dict = {
+                    "result": "true",
+                    "gold": tool["param"]["civ1_resource_dict"]["Gold"],
+                    "luxury": next(iter(tool["param"]["civ1_resource_dict"])),
+                }
                 result = json.dumps(pair_dict)
                 logger.debug(f"{civ1_name} uses the {skill_name} skill on {civ2_name} --success")
-                game_skill_data['skills'][civ_name].remove(tool)
-                game_skill_data['skill_num'][civ_name] += 1
+                game_skill_data["skills"][civ_name].remove(tool)
+                game_skill_data["skill_num"][civ_name] += 1
                 return result, game_skill_data
     else:
-        for tool in game_skill_data['skills'][civ_name]:
-            if skill_name == tool['skill_name'] and civ2_name == tool['to_civ']:
-                pair_dict = {'result': 'true'}
+        for tool in game_skill_data["skills"][civ_name]:
+            if skill_name == tool["skill_name"] and civ2_name == tool["to_civ"]:
+                pair_dict = {"result": "true"}
                 result = json.dumps(pair_dict)
                 logger.debug(f"{civ1_name} uses the {skill_name} skill on {civ2_name} --success")
-                game_skill_data['skills'][civ_name].remove(tool)
-                game_skill_data['skill_num'][civ_name] += 1
+                game_skill_data["skills"][civ_name].remove(tool)
+                game_skill_data["skill_num"][civ_name] += 1
                 return result, game_skill_data
-    pair_dict = {'result': 'false'}
+    pair_dict = {"result": "false"}
     result = json.dumps(pair_dict)
     return result, game_skill_data

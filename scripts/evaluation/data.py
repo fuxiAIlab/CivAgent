@@ -1,36 +1,38 @@
 import math
-import re
 import os
+import re
 
-civ_str = {'none': 0, 'workflow': 0, 'simlator': 0, 'reflexion': 0}
-civ_str_list = {'none': [], 'workflow': [], 'simlator': [], 'reflexion': []}
-decision_num = {'none': {'yes': 0, 'no': 0},
-                'workflow': {'yes': 0, 'no': 0},
-                'simlator': {'yes': 0, 'no': 0},
-                'reflexion': {'yes': 0, 'no': 0}}
-try_num = {'none': 0, 'workflow': 0, 'simlator': 0, 'reflexion': 0}
-replace_num = {'none': 0, 'workflow': 0, 'simlator': 0, 'reflexion': 0}
-declar_war_num = {'none': 0, 'workflow': 0, 'simlator': 0, 'reflexion': 0}
-form_ally_num = {'none': 0, 'workflow': 0, 'simlator': 0, 'reflexion': 0}
-form_ally_agree = {'none': 0, 'workflow': 0, 'simlator': 0, 'reflexion': 0}
-form_ally_reject = {'none': 0, 'workflow': 0, 'simlator': 0, 'reflexion': 0}
-seek_peace_num = {'none': 0, 'workflow': 0, 'simlator': 0, 'reflexion': 0}
-seek_peace_agree = {'none': 0, 'workflow': 0, 'simlator': 0, 'reflexion': 0}
-seek_peace_reject = {'none': 0, 'workflow': 0, 'simlator': 0, 'reflexion': 0}
-change_closeness_num = {'none': 0, 'workflow': 0, 'simlator': 0, 'reflexion': 0}
-change_closeness_agree = {'none': 0, 'workflow': 0, 'simlator': 0, 'reflexion': 0}
-change_closeness_reject = {'none': 0, 'workflow': 0, 'simlator': 0, 'reflexion': 0}
-research_agreement_num = {'none': 0, 'workflow': 0, 'simlator': 0, 'reflexion': 0}
-research_agreement_agree = {'none': 0, 'workflow': 0, 'simlator': 0, 'reflexion': 0}
-research_agreement_reject = {'none': 0, 'workflow': 0, 'simlator': 0, 'reflexion': 0}
-common_enemy_num = {'none': 0, 'workflow': 0, 'simlator': 0, 'reflexion': 0}
-common_enemy_agree = {'none': 0, 'workflow': 0, 'simlator': 0, 'reflexion': 0}
-common_enemy_reject = {'none': 0, 'workflow': 0, 'simlator': 0, 'reflexion': 0}
+civ_str = {"none": 0, "workflow": 0, "simlator": 0, "reflexion": 0}
+civ_str_list = {"none": [], "workflow": [], "simlator": [], "reflexion": []}
+decision_num = {
+    "none": {"yes": 0, "no": 0},
+    "workflow": {"yes": 0, "no": 0},
+    "simlator": {"yes": 0, "no": 0},
+    "reflexion": {"yes": 0, "no": 0},
+}
+try_num = {"none": 0, "workflow": 0, "simlator": 0, "reflexion": 0}
+replace_num = {"none": 0, "workflow": 0, "simlator": 0, "reflexion": 0}
+declar_war_num = {"none": 0, "workflow": 0, "simlator": 0, "reflexion": 0}
+form_ally_num = {"none": 0, "workflow": 0, "simlator": 0, "reflexion": 0}
+form_ally_agree = {"none": 0, "workflow": 0, "simlator": 0, "reflexion": 0}
+form_ally_reject = {"none": 0, "workflow": 0, "simlator": 0, "reflexion": 0}
+seek_peace_num = {"none": 0, "workflow": 0, "simlator": 0, "reflexion": 0}
+seek_peace_agree = {"none": 0, "workflow": 0, "simlator": 0, "reflexion": 0}
+seek_peace_reject = {"none": 0, "workflow": 0, "simlator": 0, "reflexion": 0}
+change_closeness_num = {"none": 0, "workflow": 0, "simlator": 0, "reflexion": 0}
+change_closeness_agree = {"none": 0, "workflow": 0, "simlator": 0, "reflexion": 0}
+change_closeness_reject = {"none": 0, "workflow": 0, "simlator": 0, "reflexion": 0}
+research_agreement_num = {"none": 0, "workflow": 0, "simlator": 0, "reflexion": 0}
+research_agreement_agree = {"none": 0, "workflow": 0, "simlator": 0, "reflexion": 0}
+research_agreement_reject = {"none": 0, "workflow": 0, "simlator": 0, "reflexion": 0}
+common_enemy_num = {"none": 0, "workflow": 0, "simlator": 0, "reflexion": 0}
+common_enemy_agree = {"none": 0, "workflow": 0, "simlator": 0, "reflexion": 0}
+common_enemy_reject = {"none": 0, "workflow": 0, "simlator": 0, "reflexion": 0}
 
-cheat_num = {'none': 0, 'workflow': 0, 'simlator': 0, 'reflexion': 0}
+cheat_num = {"none": 0, "workflow": 0, "simlator": 0, "reflexion": 0}
 civ_name_str = {"rome": 0, "aztecs": 0, "greece": 0, "egypt": 0}
 
-folder_path = 'Log'
+folder_path = "Log"
 file_paths = []
 
 used_declare_war = "used the declare_war skill"
@@ -70,7 +72,7 @@ effective_game_num = 0
 civ_work_num = {"rome": 0, "aztecs": 0, "greece": 0, "egypt": 0}
 
 for path in file_paths:
-    with open(path, 'r', encoding='latin-1') as file:
+    with open(path, "r", encoding="latin-1") as file:
         lines = file.readlines()
         if "replace" not in lines[-1]:
             continue
@@ -80,7 +82,7 @@ for path in file_paths:
         result = re.search(pattern, argument_str)
         if result:
             argument_list = result.group(1).split(", ")
-        argument_list = [re.sub(r"('|\")", '', item) for item in argument_list]
+        argument_list = [re.sub(r"('|\")", "", item) for item in argument_list]
         ref = {}
         ref[argument_list[5]] = "reflexion"
         ref[argument_list[10]] = "simlator"
@@ -88,61 +90,61 @@ for path in file_paths:
         ref[argument_list[20]] = "none"
         for line in lines:
             if used_declare_war in line:
-                civ_name = line.replace("'", ",").split(',')[1].replace(" ", "")
+                civ_name = line.replace("'", ",").split(",")[1].replace(" ", "")
                 declar_war_num[ref[civ_name]] += 1
             if used_change_closeness in line:
-                civ_name = line.replace("'", ",").split(',')[1].replace(" ", "")
+                civ_name = line.replace("'", ",").split(",")[1].replace(" ", "")
                 change_closeness_num[ref[civ_name]] += 1
             if used_seek_peace in line:
-                civ_name = line.replace("'", ",").split(',')[1].replace(" ", "")
+                civ_name = line.replace("'", ",").split(",")[1].replace(" ", "")
                 seek_peace_num[ref[civ_name]] += 1
             if used_cheat in line:
-                civ_name = line.replace("'", ",").split(',')[1].replace(" ", "")
+                civ_name = line.replace("'", ",").split(",")[1].replace(" ", "")
                 cheat_num[ref[civ_name]] += 1
             if used_form_ally in line:
-                civ_name = line.replace("'", ",").split(',')[1].replace(" ", "")
+                civ_name = line.replace("'", ",").split(",")[1].replace(" ", "")
                 form_ally_num[ref[civ_name]] += 1
             if used_research_agreement in line:
-                civ_name = line.replace("'", ",").split(',')[1].replace(" ", "")
+                civ_name = line.replace("'", ",").split(",")[1].replace(" ", "")
                 research_agreement_num[ref[civ_name]] += 1
             if used_common_enemy in line:
-                civ_name = line.replace("'", ",").split(',')[1].replace(" ", "")
+                civ_name = line.replace("'", ",").split(",")[1].replace(" ", "")
                 common_enemy_num[ref[civ_name]] += 1
 
             if agree_change_closeness in line:
-                civ_name = line.replace(",", "").split(' ')[9]
+                civ_name = line.replace(",", "").split(" ")[9]
                 change_closeness_agree[ref[civ_name]] += 1
             if agree_seek_peace in line:
-                civ_name = line.replace(",", "").split(' ')[9].replace(" ", "")
+                civ_name = line.replace(",", "").split(" ")[9].replace(" ", "")
                 seek_peace_agree[ref[civ_name]] += 1
             if agree_form_ally in line:
-                civ_name = line.replace(",", "").split(' ')[9].replace(" ", "")
+                civ_name = line.replace(",", "").split(" ")[9].replace(" ", "")
                 form_ally_agree[ref[civ_name]] += 1
             if agree_research_agreement in line:
-                civ_name = line.replace(",", "").split(' ')[9].replace(" ", "")
+                civ_name = line.replace(",", "").split(" ")[9].replace(" ", "")
                 research_agreement_agree[ref[civ_name]] += 1
             if agree_common_enemy in line:
-                civ_name = line.replace(",", "").split(' ')[9].replace(" ", "")
+                civ_name = line.replace(",", "").split(" ")[9].replace(" ", "")
                 common_enemy_agree[ref[civ_name]] += 1
 
             if rejected_change_closeness in line:
-                civ_name = line.replace(",", "").split(' ')[8].replace(" ", "")
+                civ_name = line.replace(",", "").split(" ")[8].replace(" ", "")
                 change_closeness_reject[ref[civ_name]] += 1
 
             if rejected_seek_peace in line:
-                civ_name = line.replace(",", "").split(' ')[8].replace(" ", "")
+                civ_name = line.replace(",", "").split(" ")[8].replace(" ", "")
                 seek_peace_reject[ref[civ_name]] += 1
 
             if rejected_form_ally in line:
-                civ_name = line.replace(",", "").split(' ')[8].replace(" ", "")
+                civ_name = line.replace(",", "").split(" ")[8].replace(" ", "")
                 form_ally_reject[ref[civ_name]] += 1
 
             if rejected_research_agreement in line:
-                civ_name = line.replace(",", "").split(' ')[8].replace(" ", "")
+                civ_name = line.replace(",", "").split(" ")[8].replace(" ", "")
                 research_agreement_reject[ref[civ_name]] += 1
 
             if rejected_common_enemy in line:
-                civ_name = line.replace(",", "").split(' ')[8].replace(" ", "")
+                civ_name = line.replace(",", "").split(" ")[8].replace(" ", "")
                 common_enemy_reject[ref[civ_name]] += 1
 
         game_result = lines[-4]
@@ -176,8 +178,8 @@ for path in file_paths:
                 civ_str_list[ref[civ]].append(game_result_dict[civ] / count)
 
         for civ in decision_result_dict:
-            decision_num[ref[civ]]['yes'] += decision_result_dict[civ]['yes']
-            decision_num[ref[civ]]['no'] += decision_result_dict[civ]['no']
+            decision_num[ref[civ]]["yes"] += decision_result_dict[civ]["yes"]
+            decision_num[ref[civ]]["no"] += decision_result_dict[civ]["no"]
 
         for civ in try_result_dict:
             try_num[ref[civ]] += try_result_dict[civ]

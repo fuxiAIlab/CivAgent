@@ -35,4 +35,3 @@ python3 run_bargain_task.py ../reproductions/Autosave-China-60 rome mistral chin
 python3 run_bargain_task.py ../reproductions/Autosave-China-60 rome mistral china gemma
 python3 run_bargain_task.py ../reproductions/Autosave-China-60 rome mistral china llama3
 python3 run_bargain_task.py ../reproductions/Autosave-China-60 rome llama3 china gemma
-

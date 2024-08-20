@@ -1,4 +1,7 @@
-# 二次开发文档 
+# 二次开发文档
+
+## 🙋 Contribution
+Please refer to [Documentation](/docs/README_for_contribution.md).
 
 <p align="center" width="100%">
 
@@ -90,7 +93,7 @@ OpenAI系列(含兼容):
   -  gpt-4-1106-preview
   -  deepseek
   -  其他兼容模型
-  
+
 Ollma本地大模型:
   -  Ollama所支持的所有开源大模型型号
 ```
@@ -110,7 +113,7 @@ python3 run_benchmark.py back ../reproductions/Autosave 50 declare_war aztecs gp
 ```
 具体参数见下表:
 
-| Parameters| Introduction| 
+| Parameters| Introduction|
 |-------|-------|
 | Path |  Experiment file path|
 | Mode| Patterns of reflection (back or none) |
@@ -137,7 +140,7 @@ python3 run_bargain_task_speak.py ../reproductions/Autosave-China-60 rome gpt4 c
 ```
 具体参数见下表:
 
-| Parameters   | Introduction| 
+| Parameters   | Introduction|
 |--------------|-------|
 | Path         |  Experiment file path|
 | GameInfo     |Path to the game save |
@@ -161,7 +164,7 @@ python3 run_cheat_task_speak.py ../reproductions/Autosave-China-60 gpt4 gpt4
 ```
 具体参数见下表:
 
-| Parameters| Introduction| 
+| Parameters| Introduction|
 |-------|-------|
 | Path |  Experiment file path|
 | GameInfo |Path to the game save |
@@ -194,7 +197,7 @@ Mac: 点击Unciv.jar文件，可以直接进入游戏。我们还额外提供了
 以下是一个例子：
 ```
 #采取默认的配置
-java -jar Unciv.jar 
+java -jar Unciv.jar
 #设置参数
 java -jar Unciv.jar NEED_POST=true AI_Server_Address=http://127.0.0.1:2337/
 ```
@@ -226,7 +229,7 @@ python ai_server.py
 现有的服务器中我们提供了两种AI服务：
 ```
 use_ai == 'civagent'  # 使用LLM进行决策
-use_ai == 'native_unciv'  # 使用原生的游戏行为树进行决策 
+use_ai == 'native_unciv'  # 使用原生的游戏行为树进行决策
 注意：在use_ai == 'native_unciv'的情况下，NEED_GameInfo的值需设置为True。
 ```
 
@@ -235,8 +238,8 @@ use_ai == 'native_unciv'  # 使用原生的游戏行为树进行决策
 canSignResearchAgreementsWith()
 wantsToSignDefensivePact()
 hasAtLeastMotivationToAttack()
-wantsToSignDeclarationOfFrienship()
-chooseTechToResarch()
+wantsToSignDeclarationOfFriendship()
+chooseTechToResearch()
 chooseNextConstruction()
 hasAtLeastMotivationToAttack()
 commonEnemy()
@@ -244,7 +247,7 @@ buyLuxury()
 ```
 您可以定义自己的外交决策函数，函数的参数和返回值需要与现有的函数保持一致。具体的函数例子如下:
 ```python
-def wantsToSignDeclarationOfFrienship(gameinfo, civ_name_1, civ_name_2, game_skill_data):
+def wantsToSignDeclarationOfFriendship(gameinfo, civ_name_1, civ_name_2, game_skill_data):
     """
         Assessing whether our civilization can sign a declaration of friendship with the target civilization.
         Parameters:
@@ -262,16 +265,16 @@ def wantsToSignDeclarationOfFrienship(gameinfo, civ_name_1, civ_name_2, game_ski
                 String: A JSON string containing the result and reason for being able to sign a declaration of friendship.
         Example:
             if use_ai == 'civagent':
-                wantsToSignDeclarationOfFrienship(gameinfo, rome, greece) => {"result": "false"}
+                wantsToSignDeclarationOfFriendship(gameinfo, rome, greece) => {"result": "false"}
             if use_ai == 'native_unciv':
-                wantsToSignDeclarationOfFrienship(gameinfo, rome, greece) => {"result": "true", "reason": "Rome has a high level of trust with Greece."}
+                wantsToSignDeclarationOfFriendship(gameinfo, rome, greece) => {"result": "true", "reason": "Rome has a high level of trust with Greece."}
     """
     if use_ai == 'civagent':
         return get_skills(
             "change_closeness", civ_name_1, civ_name_2, game_skill_data
         )
     elif use_ai == 'native_unciv':
-        return simulator.wantsToSignDeclarationOfFrienship(
+        return simulator.wantsToSignDeclarationOfFriendship(
             gameinfo, civ_name_1, civ_name_2
         ), {}
     else:
@@ -292,10 +295,10 @@ def wantsToSignDeclarationOfFrienship(gameinfo, civ_name_1, civ_name_2, game_ski
 ```
 #config文件中的需要配置信息如下：
 Redis:
-  host: 
-  port: 
-  db: 
-  password: 
+  host:
+  port:
+  db:
+  password:
 ```
 
 ### 游戏服务器设置与启动
@@ -338,35 +341,32 @@ Discord是一款非常流行的聊天软件，我们提供了与Discord服务器
 
 服务器id可以从Discord服务器设置中获取，机器人的token和id可以从[Discord开发者网站](https://discord.com/developers/applications)获取。
 最后将服务器频道id，机器人的token和id填入discord_server文件中，如以下所示：
-``` 
+```
 #填入对应的服务器频道id，机器人token和id，用于连接Discord服务器
 #Unciv_Bot为管理员机器人，mongolia、china、rome、aztecs、greece、egypt为文明机器人
 BotToken = {
-    'Unciv_Bot': 
-    'mongolia': 
-    'china': 
-    'rome': 
-    'aztecs': 
+    'Unciv_Bot':
+    'mongolia':
+    'china':
+    'rome':
+    'aztecs':
     'greece':
-    'egypt': 
+    'egypt':
 }
 
 discord_robot2id = {
-    'Unciv_Bot': 
-    'mongolia': 
-    'china': 
-    'rome': 
-    'aztecs': 
-    'greece': 
-    'egypt': 
+    'Unciv_Bot':
+    'mongolia':
+    'china':
+    'rome':
+    'aztecs':
+    'greece':
+    'egypt':
 }
 default_guild_id = 1194463544666755204
-``` 
+```
 配置完以上，运行以下命令即可：
 ```
 nohup python discord_server.py >> discord_server.log 2>&1 &
 ```
 完成以上步骤后Discord服务器就已经启动了，开发者可以在自己的Discord上进行调试和开发。
-
-
-

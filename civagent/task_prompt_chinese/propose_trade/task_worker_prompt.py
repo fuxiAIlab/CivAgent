@@ -1,4 +1,8 @@
-from civagent.task_prompt_chinese.prompt_hub import AskForObjectIdentifyDataModel, BargainBuyerDataModel, BargainSellerDataModel
+from civagent.task_prompt_chinese.prompt_hub import (
+    AskForObjectIdentifyDataModel,
+    BargainBuyerDataModel,
+    BargainSellerDataModel,
+)
 
 ProposeTradePrompt_Identify = """
 请你根据识别出"{utterance}"这句话中提出的交易内容，不需要多余的猜测与推断延伸。
@@ -22,7 +26,7 @@ ProposeTradePrompt_BarginSeller = """
                             你需要结合你的底线以及你与对方文明的历史对话来合理地决定接受或拒绝对方的提议。如果对方达到了你上一轮提议的报价，你必须同意交易，不然就是不诚信的行为，如果对方上一轮的报价与你的报价相差在10以内并且在流通价格区间内，可以同意交易。
                             请根据你的决定生成对 {utterance} 的回答语句。如果你决定接受该提议，你需要生成同意对方提议的回复，如果你决定拒绝该提议，你应该通过与对方讨价还价生成一个对你更有利的新提议。
                             为了获得更多利益，你需要在满足自身底线的基础上尽可能在市场价格区间内向 {receiver_persona[civ_name]} 索要更多的代价，同时，你必须遵循讨价还价的准则，即你这次提出新的提议时，你索要的代价不能比上一次你提议的更多。否则对方在上一次就会同意你的提议。所以如果你是第一次提出你的提议，你需要考虑对方压价的可能，慎重决定提出的价格，提出的新价格不能与上一轮提价相差过小。
-                            你总共只有4次和对方还价的机会，现在是第{bargin_cnt}次, 你需要慎重使用机会，选择合适的讨价还价策略适当以强硬的态度提出你的提议，当只剩最后一到两次机会时，你可以试着说出"你不买我就走了"之类强硬的话。
+                            你总共只有4次和对方还价的机会，现在是第{bargain_cnt}次, 你需要慎重使用机会，选择合适的讨价还价策略适当以强硬的态度提出你的提议，当只剩最后一到两次机会时，你可以试着说出"你不买我就走了"之类强硬的话。
                             请你基于以上要求作为 {speaker_persona[civ_name]} 生成对 {receiver_persona[civ_name]} 回复的语句。
                             你必须按照下面的格式回复：
                             回复格式:

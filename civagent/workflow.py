@@ -1,17 +1,20 @@
-from llama_index.core.base.query_pipeline.query import CustomQueryComponent
-from llama_index.core.query_pipeline import QueryPipeline, InputComponent
-from llama_index.core.response_synthesizers import TreeSummarize
-from typing import Any, Dict
-from llama_index.core import Settings
-from llama_index.embeddings.ollama import OllamaEmbedding
 import os
+from typing import Any, Dict, Optional, Tuple
+
 from llama_index.core import (
+    Settings,
+    SimpleDirectoryReader,
     StorageContext,
     VectorStoreIndex,
     load_index_from_storage,
 )
-from llama_index.core import SimpleDirectoryReader
+from llama_index.core.base.llms.types import ChatResponse
+from llama_index.core.base.query_pipeline.query import CustomQueryComponent
 from llama_index.core.bridge.pydantic import Field
+from llama_index.core.query_pipeline import InputComponent, QueryPipeline
+from llama_index.core.response_synthesizers import TreeSummarize
+from llama_index.embeddings.ollama import OllamaEmbedding
+
 from civagent.utils.ollama_utils import CustomOllama
 from civagent.utils.prompt_utils import prompt_make
 from civsim import logger
@@ -24,11 +27,9 @@ class Component(CustomQueryComponent):
     prompt: str = Field(..., description="OpenAI LLM")
     input_key: str = Field(..., description="input")
 
-    def _validate_component_inputs(
-            self, _input: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _validate_component_inputs(self, _input: Dict[str, Any]) -> Dict[str, Any]:
         """Validate component inputs during run_component."""
-        # NOTE: this is OPTIONAL but we show you here how to do validation as an example
+        # NOTE: this is OPTIONAL, but we show you here how to do validation as an example
         return _input
 
     @property
@@ -51,11 +52,9 @@ class ComponentRetriever(CustomQueryComponent):
     input_key: str = Field(..., description="input")
     retriever: str = Field(..., description="input")
 
-    def _validate_component_inputs(
-            self, _input: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _validate_component_inputs(self, _input: Dict[str, Any]) -> Dict[str, Any]:
         """Validate component inputs during run_component."""
-        # NOTE: this is OPTIONAL but we show you here how to do validation as an example
+        # NOTE: this is OPTIONAL, but we show you here how to do validation as an example
         return _input
 
     @property
@@ -73,17 +72,20 @@ class ComponentRetriever(CustomQueryComponent):
         return {"output": prompt}
 
 
-def skill_workflow(req, model):
-    api_key = req.get('llm_api_key', '')
+def skill_workflow_with_reflection(req: Dict[str, Any], model: str) -> Tuple[Any, Dict[str, Any]]:
+    api_key = req.get("llm_api_key", "")
     llm = CustomOllama(
-        model=model, format="json", force_json=True,
-        api_key=api_key, llm_config=req.get('llm_config', {})
+        model=model,
+        format="json",
+        force_json=True,
+        api_key=api_key,
+        llm_config=req.get("llm_config", {}),
     )
     workflow = QueryPipeline(verbose=True)
     base_path = os.path.dirname(__file__)
     reflection_path = os.path.abspath(os.path.join(base_path, "..", "data", "deployment", "reflection.txt"))
     if not os.path.exists(reflection_path):
-        open(reflection_path, 'a').close()
+        open(reflection_path, "a").close()
     try:
         documents = SimpleDirectoryReader(input_files=[reflection_path]).load_data()
     except Exception as e:
@@ -109,34 +111,36 @@ def skill_workflow(req, model):
             index.storage_context.persist("./storage")
     retriever = index.as_retriever(similarity_top_k=2)
     summarizer = TreeSummarize(llm=llm)
-    plans_prompt, llm_config = prompt_make(
-        'agent_plans', context_dict={'language': req['language']}
-    )
+    plans_prompt, llm_config = prompt_make("agent_plans", context_dict={"language": req["language"]})
     plan_llm = CustomOllama(
-        model=model, format="json", force_json=True, api_key=api_key, llm_config=llm_config
+        model=model,
+        format="json",
+        force_json=True,
+        api_key=api_key,
+        llm_config=llm_config,
     )
-    decision_prompt, llm_config = prompt_make(
-        'agent_skill_decision', context_dict={'language': req['language']}
-    )
+    decision_prompt, llm_config = prompt_make("agent_skill_decision", context_dict={"language": req["language"]})
     decision_llm = CustomOllama(
-        model=model, format="json", force_json=True, api_key=api_key, llm_config=llm_config
+        model=model,
+        format="json",
+        force_json=True,
+        api_key=api_key,
+        llm_config=llm_config,
     )
-    plans_comnponent = Component(
-        req=req, prompt=plans_prompt, input_key="analysis"
+    plans_component = Component(req=req, prompt=plans_prompt, input_key="analysis")
+    decision_component = ComponentRetriever(req=req, prompt=decision_prompt, input_key="plans", retriever="retriever")
+    workflow.add_modules(
+        {
+            "Analyze_llm": llm,
+            "Analyze_prompt": InputComponent(),
+            "Plans_llm": plan_llm,
+            "Plans_prompt": plans_component,
+            "Decision_llm": decision_llm,
+            "Decision_prompt": decision_component,
+            "retriever": retriever,
+            "summarizer": summarizer,
+        }
     )
-    decision_component = ComponentRetriever(
-        req=req, prompt=decision_prompt, input_key="plans", retriever="retriever"
-    )
-    workflow.add_modules({
-        "Analyze_llm": llm,
-        "Analyze_prompt": InputComponent(),
-        "Plans_llm": plan_llm,
-        "Plans_prompt": plans_comnponent,
-        "Decison_llm": decision_llm,
-        "Decison_prompt": decision_component,
-        "retriever": retriever,
-        "summarizer": summarizer,
-    })
 
     workflow.add_link("Analyze_prompt", "Analyze_llm")
     workflow.add_link("Analyze_llm", "Plans_prompt", dest_key="analysis")
@@ -144,116 +148,118 @@ def skill_workflow(req, model):
     workflow.add_link("Plans_llm", "retriever")
     workflow.add_link("retriever", "summarizer", dest_key="nodes")
     workflow.add_link("Plans_llm", "summarizer", dest_key="query_str")
-    workflow.add_link("summarizer", "Decison_prompt", dest_key="retriever")
-    workflow.add_link("Plans_llm", "Decison_prompt", dest_key="plans")
-    workflow.add_link("Decison_prompt", "Decison_llm")
+    workflow.add_link("summarizer", "Decision_prompt", dest_key="retriever")
+    workflow.add_link("Plans_llm", "Decision_prompt", dest_key="plans")
+    workflow.add_link("Decision_prompt", "Decision_llm")
 
-    response, intermediates = workflow.run_with_intermediates(input=req['prompt'])
-    req['last_plans'] = intermediates["Plans_llm"].outputs['output']
+    response, intermediates = workflow.run_with_intermediates(input=req["prompt"])
+    req["last_plans"] = intermediates["Plans_llm"].outputs["output"]
     return response
 
 
-def skill_workflow_noreflection(req, model):
-    api_key = req.get('llm_api_key', '')
-    llm = CustomOllama(
-        model=model, format="json", force_json=True,
-        api_key=api_key, llm_config=req.get('llm_config', {})
+def skill_workflow_no_reflection(req: Dict[str, Any], model: str) -> Tuple[Any, Dict[str, Any]]:
+    api_key: str = req.get("llm_api_key", "")
+    llm: CustomOllama = CustomOllama(
+        model=model,
+        format="json",
+        force_json=True,
+        api_key=api_key,
+        llm_config=req.get("llm_config", {}),
     )
     workflow = QueryPipeline(verbose=True)
-    plans_prompt, llm_config = prompt_make(
-        'agent_plans', context_dict={'language': req['language']}
-    )
+    plans_prompt, llm_config = prompt_make("agent_plans", context_dict={"language": req["language"]})
     plan_llm = CustomOllama(
-        model=model, format="json", force_json=True,
-        api_key=api_key, llm_config=llm_config
+        model=model,
+        format="json",
+        force_json=True,
+        api_key=api_key,
+        llm_config=llm_config,
     )
     decision_prompt, llm_config = prompt_make(
-        'agent_skill_decision_noreflection',
-        context_dict={'language': req['language']}
+        "agent_skill_decision_noreflection", context_dict={"language": req["language"]}
     )
     decision_llm = CustomOllama(
-        model=model, format="json", force_json=True,
-        api_key=api_key, llm_config=llm_config
+        model=model,
+        format="json",
+        force_json=True,
+        api_key=api_key,
+        llm_config=llm_config,
     )
     # plans_prompt, _ = prompt_make('agent_plans', context_dict={'language': req['language']})
-    # decision_prompt, _ = prompt_make('agent_skill_decision_noreflection', context_dict={'language': req['language']})
-    plans_comnponent = Component(
-        req=req, prompt=plans_prompt, input_key="analysis"
+    # decision_prompt, _ = prompt_make('agent_skill_decision_no_reflection', context_dict={'language': req['language']})
+    plans_component = Component(req=req, prompt=plans_prompt, input_key="analysis")
+    decision_component = Component(req=req, prompt=decision_prompt, input_key="plans")
+    workflow.add_modules(
+        {
+            "Analyze_llm": llm,
+            "Analyze_prompt": InputComponent(),
+            "Plans_llm": plan_llm,
+            "Plans_prompt": plans_component,
+            "Decision_llm": decision_llm,
+            "Decision_prompt": decision_component,
+        }
     )
-    decision_component = Component(
-        req=req, prompt=decision_prompt, input_key="plans"
-    )
-    workflow.add_modules({
-        "Analyze_llm": llm,
-        "Analyze_prompt": InputComponent(),
-        "Plans_llm": plan_llm,
-        "Plans_prompt": plans_comnponent,
-        "Decison_llm": decision_llm,
-        "Decison_prompt": decision_component,
-    })
 
     workflow.add_link("Analyze_prompt", "Analyze_llm")
     workflow.add_link("Analyze_llm", "Plans_prompt", dest_key="analysis")
     workflow.add_link("Plans_prompt", "Plans_llm")
-    workflow.add_link("Plans_llm", "Decison_prompt", dest_key="plans")
-    workflow.add_link("Decison_prompt", "Decison_llm")
+    workflow.add_link("Plans_llm", "Decision_prompt", dest_key="plans")
+    workflow.add_link("Decision_prompt", "Decision_llm")
 
-    response, intermediates = workflow.run_with_intermediates(input=req['prompt'])
-    req['last_plans'] = intermediates["Plans_llm"].outputs['output']
+    response, intermediates = workflow.run_with_intermediates(input=req["prompt"])
+    req["last_plans"] = intermediates["Plans_llm"].outputs["output"]
     return response
 
 
-def reply_workflow(req, model):
-    api_key = req.get('llm_api_key', '')
-    llm = CustomOllama(
-        model=model, format="json", force_json=True,
-        api_key=api_key, llm_config=req.get('llm_config', {})
+def reply_workflow(req: Dict[str, Any], model: str) -> Any:
+    api_key: str = req.get("llm_api_key", "")
+    llm: CustomOllama = CustomOllama(
+        model=model,
+        format="json",
+        force_json=True,
+        api_key=api_key,
+        llm_config=req.get("llm_config", {}),
     )
     workflow = QueryPipeline(verbose=True)
-    simulation_prompt, llm_config = prompt_make(
-        'agent_reply_simulation',
-        context_dict={'language': req['language']}
-    )
+    simulation_prompt, llm_config = prompt_make("agent_reply_simulation", context_dict={"language": req["language"]})
     simulation_llm = CustomOllama(
-        model=model, format="json", force_json=True,
-        api_key=api_key, llm_config=llm_config
+        model=model,
+        format="json",
+        force_json=True,
+        api_key=api_key,
+        llm_config=llm_config,
     )
-    evaluation_prompt, llm_config = prompt_make(
-        'agent_reply_evaluation',
-        context_dict={'language': req['language']}
-    )
+    evaluation_prompt, llm_config = prompt_make("agent_reply_evaluation", context_dict={"language": req["language"]})
     evaluation_llm = CustomOllama(
-        model=model, format="json", force_json=True,
-        api_key=api_key, llm_config=llm_config
+        model=model,
+        format="json",
+        force_json=True,
+        api_key=api_key,
+        llm_config=llm_config,
     )
-    decision_prompt, llm_config = prompt_make(
-        'agent_reply',
-        context_dict={'language': req['language']}
-    )
+    decision_prompt, llm_config = prompt_make("agent_reply", context_dict={"language": req["language"]})
     decision_llm = CustomOllama(
-        model=model, format="json", force_json=True,
-        api_key=api_key, llm_config=llm_config
+        model=model,
+        format="json",
+        force_json=True,
+        api_key=api_key,
+        llm_config=llm_config,
     )
-    simulation_component = Component(
-        req=req, prompt=simulation_prompt, input_key="analysis"
+    simulation_component = Component(req=req, prompt=simulation_prompt, input_key="analysis")
+    evaluation_component = Component(req=req, prompt=evaluation_prompt, input_key="simulation")
+    decision_component = Component(req=req, prompt=decision_prompt, input_key="evaluation")
+    workflow.add_modules(
+        {
+            "Analyze_llm": llm,
+            "Analyze_prompt": InputComponent(),
+            "Simulation_llm": simulation_llm,
+            "Simulation_prompt": simulation_component,
+            "Evaluation_llm": evaluation_llm,
+            "Evaluation_prompt": evaluation_component,
+            "Reply_llm": decision_llm,
+            "Reply_prompt": decision_component,
+        }
     )
-    evaluation_component = Component(
-        req=req, prompt=evaluation_prompt, input_key="simulation"
-    )
-    decision_component = Component(
-        req=req, prompt=decision_prompt, input_key="evaluation"
-    )
-    workflow.add_modules({
-        "Analyze_llm": llm,
-        "Analyze_prompt": InputComponent(),
-        "Simulation_llm": simulation_llm,
-        "Simulation_prompt": simulation_component,
-        "Evaluation_llm": evaluation_llm,
-        "Evaluation_prompt": evaluation_component,
-        "Reply_llm": decision_llm,
-        "Reply_prompt": decision_component,
-
-    })
 
     workflow.add_link("Analyze_prompt", "Analyze_llm")
     workflow.add_link("Analyze_llm", "Simulation_prompt", dest_key="analysis")
@@ -263,69 +269,37 @@ def reply_workflow(req, model):
     workflow.add_link("Evaluation_llm", "Reply_prompt", dest_key="evaluation")
     workflow.add_link("Reply_prompt", "Reply_llm")
 
-    response = workflow.run(input=req['prompt'])
+    response = workflow.run(input=req["prompt"])
     return response
 
 
-def reflection_workflow(req, model):
-    api_key = req.get('llm_api_key', '')
-    llm = CustomOllama(
-        model=model, format="json", force_json=True,
-        api_key=api_key, llm_config=req.get('llm_config', {})
+def simulator_workflow(req: Dict[str, Any], model: str) -> Optional[ChatResponse]:
+    api_key: str = req.get("llm_api_key", "")
+    llm: CustomOllama = CustomOllama(
+        model=model,
+        format="json",
+        force_json=True,
+        api_key=api_key,
+        llm_config=req.get("llm_config", {}),
     )
     workflow = QueryPipeline(verbose=True)
-    workflow.add_modules({
-        "llm": llm,
-        "prompt": InputComponent()
-    })
+    workflow.add_modules({"llm": llm, "prompt": InputComponent()})
     workflow.add_link("prompt", "llm")
-    response = workflow.run(input=req['prompt'])
+    response = workflow.run(input=req["prompt"])
     return response
 
 
-def simulator_workflow(req, model):
-    api_key = req.get('llm_api_key', '')
-    llm = CustomOllama(
-        model=model, format="json", force_json=True,
-        api_key=api_key, llm_config=req.get('llm_config', {})
+def reply(req: Dict[str, Any], model: str) -> Optional[ChatResponse]:
+    api_key: str = req.get("llm_api_key", "")
+    llm: CustomOllama = CustomOllama(
+        model=model,
+        format="json",
+        force_json=True,
+        api_key=api_key,
+        llm_config=req.get("llm_config", {}),
     )
     workflow = QueryPipeline(verbose=True)
-    workflow.add_modules({
-        "llm": llm,
-        "prompt": InputComponent()
-    })
+    workflow.add_modules({"llm": llm, "prompt": InputComponent()})
     workflow.add_link("prompt", "llm")
-    response = workflow.run(input=req['prompt'])
-    return response
-
-
-def reply(req, model):
-    api_key = req.get('llm_api_key', '')
-    llm = CustomOllama(
-        model=model, format="json", force_json=True,
-        api_key=api_key, llm_config=req.get('llm_config', {})
-    )
-    workflow = QueryPipeline(verbose=True)
-    workflow.add_modules({
-        "llm": llm,
-        "prompt": InputComponent()
-    })
-    workflow.add_link("prompt", "llm")
-    response = workflow.run(input=req['prompt'])
-    return response
-
-
-def skill(req, model):
-    api_key = req.get('llm_api_key', '')
-    llm = CustomOllama(
-        model=model, format="json", force_json=True,
-        api_key=api_key, llm_config=req.get('llm_config', {})
-    )
-    workflow = QueryPipeline(verbose=True)
-    workflow.add_modules({
-        "llm": llm,
-        "prompt": InputComponent()
-    })
-    workflow.add_link("prompt", "llm")
-    response = workflow.run(input=req['prompt'])
+    response = workflow.run(input=req["prompt"])
     return response

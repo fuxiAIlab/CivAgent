@@ -1,14 +1,21 @@
-import ujson as json
-from llama_index.core.base.llms.types import ChatMessage
-from openai import OpenAI
-from civagent.config import config_data
+from typing import Any, Dict, Tuple
+
 import instructor
+from openai import OpenAI
+
+from civagent.config import config_data
 
 config_api_key = config_data["LLM"]["deepseek_api_key"]
 
 
-def llm_server(payload, model, request_timeout, llm_config, api_key=''):
-    api_key = config_api_key if api_key == '' else api_key
+def llm_server(
+    payload: Dict,
+    model: str,
+    request_timeout: float,
+    llm_config: Dict,
+    api_key: str = "",
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    api_key = config_api_key if api_key == "" else api_key
     client = instructor.from_openai(
         OpenAI(
             base_url="https://api.deepseek.com",
@@ -26,8 +33,5 @@ def llm_server(payload, model, request_timeout, llm_config, api_key=''):
         resp = resp.choices[0].message.content
     else:
         resp = resp.model_dump_json()
-    message = {
-        'role': 'user',
-        'content': resp
-    }
+    message = {"role": "user", "content": resp}
     return message, {}

@@ -1,4 +1,8 @@
-from civagent.task_prompt.prompt_hub import AskForObjectIdentifyDataModel, BargainBuyerDataModel, BargainSellerDataModel
+from civagent.task_prompt.prompt_hub import (
+    AskForObjectIdentifyDataModel,
+    BargainBuyerDataModel,
+    BargainSellerDataModel,
+)
 
 ProposeTradePrompt_Identify = """
 Please identify the content of the transaction proposed in the sentence "{utterance}" according to it, without unnecessary speculation and inference extension.

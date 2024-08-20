@@ -1,25 +1,27 @@
 import multiprocessing
-from datetime import datetime
 from dataclasses import asdict
-import requests
+from datetime import datetime
+
 import discord
+import requests
 from discord.ext import commands
+
 from civagent.config import config_data
-from deployment.redis_mq import RedisStreamMQ
 from deployment.chatbot.civchatbot import ChatMessage
 from deployment.chatbot.discord.discord_chatbot import BotToken, discord_robot2id
+from deployment.redis_mq import RedisStreamMQ
 
 mq = RedisStreamMQ()
 
 discord_id2robot = {v: k for k, v in discord_robot2id.items()}
 voice_connections = {}
-receiver_default = '1194848561465143408'
-url = config_data['chat_server']['url'] + 'open-apis/fuxi-unciv/MsgPushDiscord'
+receiver_default = "1194848561465143408"
+url = config_data["chat_server"]["url"] + "open-apis/fuxi-unciv/MsgPushDiscord"
 
 
 class DiscordBot(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix='!', intents=discord.Intents.all())
+        super().__init__(command_prefix="!", intents=discord.Intents.all())
         self.robot_name = None
         self.receive_user_id = None
         self.receive_channel_id = None
@@ -32,12 +34,12 @@ class DiscordBot(commands.Bot):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(f'We have logged in as {self.user}')
+        print(f"We have logged in as {self.user}")
 
     # < Message id = 1196296650461827132
     # channel = < TextChannel
     #             id = 1194463544666755207
-    #             name = ''
+    #             name = '游戏管理员-互动ai-伏羲openday'
     #             position = 0
     #             nsfw = False
     #             news = False
@@ -60,19 +62,20 @@ class DiscordBot(commands.Bot):
         # the bot should not reply to itself
         if message.author == self.user:
             return
-        discord_channel_key = 'discord_channel_' + str(message.author.id) + '_' + self.robot_name + '_private'
+        discord_channel_key = "discord_channel_" + str(message.author.id) + "_" + self.robot_name + "_private"
         receive_channel_id = mq.get(discord_channel_key)
 
         # discord.DMChannel means private channel
-        if ((self.user in message.mentions and isinstance(message.channel, discord.DMChannel))
-                or str(message.channel.id) == str(receive_channel_id)):
+        if (self.user in message.mentions and isinstance(message.channel, discord.DMChannel)) or str(
+            message.channel.id
+        ) == str(receive_channel_id):
             # only use user_id rather than user_name
-            channel_msg = 'discord_channel_' + str(message.author.id) + '_' + self.robot_name + '_private'
+            channel_msg = "discord_channel_" + str(message.author.id) + "_" + self.robot_name + "_private"
             mq.set(channel_msg, message.channel.id)
-            user_message = message.clean_content.strip().split(' ')[-1]
+            user_message = message.clean_content.strip().split(" ")[-1]
             # Group chat: please refer to the create_team function of discord_chatbot.
             data = ChatMessage(
-                msgType='discord',
+                msgType="discord",
                 isGroup=0,
                 channelId=str(message.channel.id),
                 uuid=str(message.id),
@@ -80,7 +83,7 @@ class DiscordBot(commands.Bot):
                 addTime=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 fromBot=str(message.author.id),
                 toBot=self.robot_name,
-                notify=user_message
+                notify=user_message,
             )
             requests.post(url, json=asdict(data))
 

@@ -334,7 +334,6 @@ diplomatic_memory = {
     "seek_peace": "{civ_name} asks {to_civ} for peace with {offer_gold_amount}, {to_civ}{decision_str}.",
     "research_agreement": "{civ_name} has entered into a research agreement with {to_civ}{to_civ}{decision_str}.",
     "propose_trade": "{civ_name} proposes a trade to {to_civ}{to_civ}{decision_str}.",
-
 }
 diplomatic_memory_oppo = {
     "buy_luxury": "{civ_name} buys {civ2_resource_dict}, {to_civ}{decision_str} luxury from {to_civ} with {civ1_resource_dict[Gold]} gold each turn.",

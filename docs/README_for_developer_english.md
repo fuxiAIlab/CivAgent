@@ -1,34 +1,7 @@
 # Digital Player: Evaluating Large Language Models based Human-like Agent in Games
 
-<p align="center" width="100%">
-
-![unciv](assets/img.png)
-
-## Entrance
-
-### If you're a player, start  [here](#start-the-game)
-
-### If you're a developer or researchers,start [here](#setting-up-the-environment)
-
-## Start the Game
-
-### Step 1. Set server address
-
-Open the game, modify the synchronization frequency and server address in the setting interface; The new server address is: http://sl.office.fuxi.netease.com:44952
-
-### Step 2. Set the game
-
-On the Start new game screen, check 'Online Multiplayer' in the lower left corner; It is recommended to start from 'Medieval Times', please click' Set as Current player ', click the question mark on the right to select a civilization, the optional civilization includes 【 Chinese 】【 Mongol 】【 Egyptian 】【 Aztec 】【 Roman 】【 Greek 】
-
-### Step 3. Copy the gameid
-
-After creating the game, the gameid is automatically copied to your paste board; Or you can see the game you created in the 'Multiplayer' screen
-
-### Step 4. Chat in discord
-
-[CivAgent Discord](https://discord.com/channels/@me/1196286976639369297)
-
-
+## 🙋 Contribution
+Please refer to [Documentation](/docs/README_for_contribution.md).
 
 ## Setting Up the Environment
 ### Install Java JDK
@@ -137,7 +110,7 @@ OpenAI series (including compatible models):
   -  gpt-3.5-turbo-1106
   -  gpt-4-1106-preview
   -  deepseek
-  
+
 Large local models:
   -  All supported open-source large model types by Ollama
 ```
@@ -266,7 +239,7 @@ Here is an example:
 
 ```
 # Adopt the default configuration.
-java -jar Unciv.jar 
+java -jar Unciv.jar
 # Set the parameters.
 java -jar Unciv.jar NEED_POST=true AI_Server_Address=http://127.0.0.1:2337/
 ```
@@ -309,8 +282,8 @@ In the current AI server, the following function will be affected by this switch
 canSignResearchAgreementsWith()
 wantsToSignDefensivePact()
 hasAtLeastMotivationToAttack()
-wantsToSignDeclarationOfFrienship()
-chooseTechToResarch()
+wantsToSignDeclarationOfFriendship()
+chooseTechToResearch()
 chooseNextConstruction()
 hasAtLeastMotivationToAttack()
 commonEnemy()
@@ -318,7 +291,7 @@ buyLuxury()
 ```
 You can define your own diplomatic decision-making function, ensuring that its parameters and return values remain consistent with the existing functions. An example of the function is as follows:
 ```python
-def wantsToSignDeclarationOfFrienship(gameinfo, civ_name_1, civ_name_2, game_skill_data):
+def wantsToSignDeclarationOfFriendship(gameinfo, civ_name_1, civ_name_2, game_skill_data):
     """
         Assessing whether our civilization can sign a declaration of friendship with the target civilization.
         Parameters:
@@ -336,23 +309,23 @@ def wantsToSignDeclarationOfFrienship(gameinfo, civ_name_1, civ_name_2, game_ski
                 String: A JSON string containing the result and reason for being able to sign a declaration of friendship.
         Example:
             if use_ai == 'civagent':
-                wantsToSignDeclarationOfFrienship(gameinfo, rome, greece) => {"result": "false"}
+                wantsToSignDeclarationOfFriendship(gameinfo, rome, greece) => {"result": "false"}
             if use_ai == 'native_unciv':
-                wantsToSignDeclarationOfFrienship(gameinfo, rome, greece) => {"result": "true", "reason": "Rome has a high level of trust with Greece."}
+                wantsToSignDeclarationOfFriendship(gameinfo, rome, greece) => {"result": "true", "reason": "Rome has a high level of trust with Greece."}
     """
     if use_ai == 'civagent':
         return get_skills(
             "change_closeness", civ_name_1, civ_name_2, game_skill_data
         )
     elif use_ai == 'native_unciv':
-        return simulator.wantsToSignDeclarationOfFrienship(
+        return simulator.wantsToSignDeclarationOfFriendship(
             gameinfo, civ_name_1, civ_name_2
         ), {}
     else:
         # todo write your custom ai
         raise
 ```
-`wantsToSignDeclarationOfFrienship`This is a function to determine whether the two parties can sign a declaration of friendship. In the game, a decision request is made, and the information in the request contains the game archive information`gameinfo`, the name of Civilization 1`civ1_name`, and the name of Civilization 2`civ2_name`. The function body calls the behavior tree decision in the Jar package, and finally returns a json file containing the decision result and the reason for the decision.
+`wantsToSignDeclarationOfFriendship`This is a function to determine whether the two parties can sign a declaration of friendship. In the game, a decision request is made, and the information in the request contains the game archive information`gameinfo`, the name of Civilization 1`civ1_name`, and the name of Civilization 2`civ2_name`. The function body calls the behavior tree decision in the Jar package, and finally returns a json file containing the decision result and the reason for the decision.
 
 The developer can rewrite the function body decision in a custom way, as long as the return format is consistent.
 
@@ -366,10 +339,10 @@ In the `config.py` file, we provide the Redis database configuration information
 ```
 # The config file requires the following configuration information:
 Redis:
-  host: 
-  port: 
-  db: 
-  password: 
+  host:
+  port:
+  db:
+  password:
 ```
 ###Game server setup and startup
 The game server is used for online multiplayer battle mode, and players can play multiplayer games through the server. Here, developers can deploy their own local game server.
@@ -381,7 +354,7 @@ In the game Settings interface to select the multiplayer game, in the options to
 ###Chat server setup and startup
 The chat function is an important feature in the game, through which players can communicate in real time. In the `chatbot\chat_server`file, we provide the source code for our chat server.
 In the `config.py` file, we provide the chat server configuration information. Developers need to change it according to their own chat server configuration.
- 
+
 ```
 #The following configuration information is required in the config file.Developers need to change the url of chat_server to the server address they set, which will be used for subsequent connections to the chat software.
 chat_server:
@@ -406,35 +379,35 @@ nohup python mq_listener.py
 ```
 ###Discord server setup and startup
 Discord is a very popular chat software, and we provided a connection to the Discord server. In `chatbot\discord\discord_server`,
-We have provided the source code for our Discord server so that developers can deploy their own local Discord server. 
+We have provided the source code for our Discord server so that developers can deploy their own local Discord server.
 Developers who want to debug and develop in their own Discord need to go to the official Discord website and create their own server channel and create the corresponding bot.
 
 Server id can be obtained from the Discord server Settings, the robot's token and id can be obtained from/Discord developer [web site] (https://discord.com/developers/applications).
 Finally, fill in the server channel id, bot token, and id in the discord_server file, as shown below:
-``` 
+```
 # Fill in the corresponding server channel id, bot token and id to connect to the Discord server
 #Unciv_Bot is the administrator robot, and mongolia, china, rome, aztecs, greece, and egypt are the civilization robots
 BotToken = {
-    'Unciv_Bot': 
-    'mongolia': 
-    'china': 
-    'rome': 
-    'aztecs': 
+    'Unciv_Bot':
+    'mongolia':
+    'china':
+    'rome':
+    'aztecs':
     'greece':
-    'egypt': 
+    'egypt':
 }
 
 discord_robot2id = {
-    'Unciv_Bot': 
-    'mongolia': 
-    'china': 
-    'rome': 
-    'aztecs': 
-    'greece': 
-    'egypt': 
+    'Unciv_Bot':
+    'mongolia':
+    'china':
+    'rome':
+    'aztecs':
+    'greece':
+    'egypt':
 }
 default_guild_id = 1194463544666755204
-``` 
+```
 To do this, run the following command:
 ```
 nohup python discord_server.py

@@ -146,10 +146,11 @@ def process(data: ChatMemory) -> None:
                 logger.info(f"save2req: {req}")
                 intention_result, _ = civagent.CivAgent.intention_understanding(req, only_chat=is_bootstrap)
                 logger.info(f"intention_result: {intention_result}")
-                response_debug, _, decision_gm_fn = civagent.CivAgent.response(
+                response_d, _, decision_gm_fn = civagent.CivAgent.response(
                     req, intention_result, save_data, use_random=False
                 )
-                response = response_debug["response"]
+                logger.info(f"response_debug: {response_d}")
+                response = response_d["response"]
                 # comment: Require users to initiate transactions instead of directly modifying the save file
                 #
                 # if decision_gm_fn is not None:
@@ -161,10 +162,10 @@ def process(data: ChatMemory) -> None:
                 # else:
                 #     logger.debug(f"decision_gm_fn is None {response_debug}")
                 if config_data.get("debug_mode", 0):
-                    text = f"{response}\n\n{response_debug}"
+                    text = f"{response}\n\n{response_d}"
                 else:
                     text = f"{response}"
-                ChatManager.send_msg_by_http(gameid, text, robot_name, from_name, 0, debug_info=response_debug)
+                ChatManager.send_msg_by_http(gameid, text, robot_name, from_name, 0, debug_info=response_d)
             except Exception as e:
                 logger.exception(f"LLM_error {e}.", exc_info=True)
                 ChatManager.send_msg_by_http(

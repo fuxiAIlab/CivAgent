@@ -165,7 +165,7 @@ def prompt_make(intention: str, context_dict: Dict[str, Any]) -> Tuple[str, Any]
         }
         task_prompt_str = task_prompt_make(task_prompt.ProposeTradePrompt_Identify, context_dict)
         prompt_config = task_prompt.ProposeTradePrompt_Identify_Config
-        prompt_config["response_model"] = task_prompt.AskForObjectPrompt_Identify_Output
+        prompt_config["response_model"] = task_prompt.ProposeTradePrompt_Identify_Output
     elif intention == "bargain_buyer":
         context_dict = {
             **context_dict,
@@ -254,11 +254,11 @@ def prompt_make(intention: str, context_dict: Dict[str, Any]) -> Tuple[str, Any]
     elif intention.startswith("agent"):
         prompt_str = f"{task_prompt_str}"
     elif intention in ("doublecheck_rewrite",):
-        # todo use smaller prompt
+        # todo use a smaller prompt
         prompt_str = f"{prompt_str}\n{agent_profile_str}\n{event_str}\n{dialoge_str}\n{task_prompt_str}"
     else:
         prompt_str = f"{prompt_str}\n{agent_profile_str}\n{event_str}\n{dialoge_str}\n{task_prompt_str}"
-    return prompt_str, prompt_config
+    return prompt_str, copy.deepcopy(prompt_config)
 
 
 def intention_doublecheck(intention_result: Dict[str, Any], req: Dict[str, Any]) -> Dict[str, str]:
@@ -269,16 +269,18 @@ def intention_doublecheck(intention_result: Dict[str, Any], req: Dict[str, Any])
             offer = copy.deepcopy(original_offer)
             offer["amount"] = offer.get("amount", 1)
             offer_extract.append(f'{offer["amount"]} {offer["item"]}')
-        intention_result["offer"] = offer_extract
+        intention_result["offer"] = ", ".join(offer_extract)
     if "demand" in intention_result:
         demand_extract = []
         for original_demand in intention_result["demand"]:
             demand = copy.deepcopy(original_demand)
             demand["amount"] = demand.get("amount", 1)
             demand_extract.append(f'{demand["amount"]} {demand["item"]}')
-        intention_result["demand"] = demand_extract
-    if intention == "propose_trade" and len(intention_result.get("civ2_resource_dict", [])) == 0:
+        intention_result["demand"] = ", ".join(demand_extract)
+    if intention == "propose_trade" and len(intention_result.get("demand", [])) == 0:
         intention = "propose_trade_gift"
+    if intention == "propose_trade" and len(intention_result.get("offer", [])) == 0:
+        intention = "ask_for_object"
     if intention == "ask_for_object" and req.get("is_at_war", False):
         intention = "ask_for_object_at_war"
     response = doublecheck_make(intention, req)[0]

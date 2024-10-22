@@ -1,4 +1,5 @@
-from typing import Any, Dict, Sequence, Tuple
+import time
+from typing import Any, Dict, Sequence, Tuple, Union
 
 import httpx
 import instructor
@@ -28,6 +29,20 @@ from .openai_like_llm_utils import llm_server as openai_like_llm_server
 from .openai_llm_utils import llm_server as openai_llm_server
 
 DEFAULT_REQUEST_TIMEOUT = 130.0
+
+
+def convert_chinese_garbled_text(text: Union[str, Dict]) -> Union[str, Dict]:
+    if isinstance(text, str):
+        try:
+            text = text.encode("iso-8859-1").decode("utf-8")
+            return text
+        except Exception:
+            return text
+    if isinstance(text, dict):
+        for key, value in text.items():
+            if isinstance(value, str):
+                text[key] = convert_chinese_garbled_text(value)
+        return text
 
 
 def get_additional_kwargs(response: Dict[str, Any], exclude: Tuple[str, ...]) -> Dict[str, Any]:
@@ -138,6 +153,7 @@ class CustomOllama(CustomLLM):
         retry_count = 0
         while retry_count < 3:
             try:
+                ts = time.time()
                 if self.model in ("mistral", "llama3", "gemma"):
                     message, raw = llm_server(self.base_url, payload, self.request_timeout, self.llm_config)
                 elif "deepseek" in self.model:
@@ -165,7 +181,14 @@ class CustomOllama(CustomLLM):
                         self.llm_config,
                         self.api_key,
                     )
-
+                message = convert_chinese_garbled_text(message)
+                log_info = {
+                    "input": payload["messages"][-1]["content"][-200:],
+                    "output": message.get("content"),
+                    "response_model": self.llm_config.get("response_model", None),
+                    "time": time.time() - ts,
+                }
+                logger.debug(f"""LLM {self.model}: {log_info} """)
                 return ChatResponse(
                     message=ChatMessage(
                         content=message.get("content"),

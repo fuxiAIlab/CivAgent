@@ -1,7 +1,7 @@
 Doublecheck_question = {
     # todo
-    "ask_for_object": ["你是在向我要{demoand}吗?"],
-    "ask_for_object_at_war": ["你是在向我要{demoand}吗? 如果我把它给你，你愿意结束战争吗?"],
+    "ask_for_object": ["你是在向我要{demand}吗?"],
+    "ask_for_object_at_war": ["你是在向我要{demand}吗? 如果我把它给你，你愿意结束战争吗?"],
     "change_closeness": ["你是想拉近我们的关系还是疏离?"],
     "common_enemy": ["你是想邀请我一起对付他吗?"],
     "form_ally": ["让我想想，你真的想和我结盟吗?"],

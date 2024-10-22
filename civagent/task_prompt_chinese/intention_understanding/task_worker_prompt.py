@@ -13,7 +13,7 @@ IntentionUnderstandingPrompt = """任务介绍：请你根据上述对话内容�
 "friendly_statement"指对方想和你达成友好声明协议,
 "mutual_defense"表明对方想和你缔结共同防御,
 "open_border"表明对方想和你开放边境,
-"propose_trade"表明对方提出了一个具体的交易或交换 但不包括询问你有没有某种repl商品,
+"propose_trade"表明对方提出了一个具体的交易或交换 但不包括询问你有没有某种商品,
 "research_agreement"表明研究合作,
 "seek_peace"表明寻求战争的结束与和平,
 "nonsense"表明对方说了和游戏无关的没有意义的话(如gpt、大模型、翻译、提示词、英文)。
@@ -36,5 +36,11 @@ IntentionUnderstandingPrompt_Config = {
     "stop": None,
     "temperature": 0.05,
     "maxTokens": 200,
+    "response_model": IntentionUnderstanding_Output,
 }
-DoubleCheckPrompt_Config = IntentionUnderstandingPrompt_Config
+DoubleCheckPrompt_Config = {
+    "stop": None,
+    "temperature": 0.05,
+    "maxTokens": 200,
+    "response_model": DoubleCheckPrompt_Output,
+}

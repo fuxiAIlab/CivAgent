@@ -81,7 +81,11 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
         llm_api_key = save_data["gameParameters"].get("llm_api_key", "")
         llm_model = save_data["gameParameters"].get("llm_model", "")
         player_civ = [civ.get("civName", "").lower() for civ in save_data.get("civilizations", []) if "playerId" in civ]
-        civs = [civ.get("civName", "").lower() for civ in save_data.get("civilizations", []) if "playerId" not in civ]
+        civs = [
+            civ.get("civName", "").lower()
+            for civ in save_data.get("civilizations", [])
+            if "playerId" not in civ and "cityStatePersonality" not in civ
+        ]
         robot_civs = [civ_name for civ_name in civs if civ_name != "barbarians"]
         return (
             player_civ,
@@ -96,7 +100,7 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
         if "Preview" in filename:
             game_id = self.is_gameid(filename)
             if game_id and mq.redis.exists(game_id):
-                mq.redis.expire(game_id, 60)
+                mq.redis.expire(game_id, 30)
                 logger.debug(f"Refresh {game_id} in redis.")
         else:
             logger.info(f"{filename} enter in logger_in_redis.")

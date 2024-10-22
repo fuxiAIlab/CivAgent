@@ -1,7 +1,7 @@
 from civagent.task_prompt_chinese.prompt_hub import (
-    AskForObjectIdentifyDataModel,
     BargainBuyerDataModel,
     BargainSellerDataModel,
+    ProposeTradeIdentifyDataModel,
 )
 
 ProposeTradePrompt_Identify = """
@@ -11,7 +11,7 @@ ProposeTradePrompt_Identify = """
 2. 不输出额外的提示词和空格。
 """
 
-ProposeTradePrompt_Identify_Output = AskForObjectIdentifyDataModel
+ProposeTradePrompt_Identify_Output = ProposeTradeIdentifyDataModel
 
 ProposeTradePrompt_Chat = """你需要按照下面的要求分析你们之间的最新的对话内容，按照给定格式输出结果。
 1.对话过程中禁止出现人称，冒号等对白以外的内容, 禁止出现英语
@@ -58,10 +58,23 @@ ProposeTradePrompt_Chat_Config = {
     "maxTokens": 80,
 }
 
-ProposeTradePrompt_Identify_Config = ProposeTradePrompt_Chat_Config
-ProposeTradePrompt_BarginSeller_Config = ProposeTradePrompt_Chat_Config = {
+ProposeTradePrompt_Identify_Config = {
+    "stop": None,
+    "temperature": 0.3,
+    "maxTokens": 80,
+    "response_model": ProposeTradePrompt_Identify_Output,
+}
+
+ProposeTradePrompt_BarginSeller_Config = {
     "stop": None,
     "temperature": 0.3,
     "maxTokens": 200,
+    "response_model": ProposeTradePrompt_BarginSeller_Output,
 }
-ProposeTradePrompt_BarginBuyer_Config = ProposeTradePrompt_BarginSeller_Config
+
+ProposeTradePrompt_BarginBuyer_Config = {
+    "stop": None,
+    "temperature": 0.3,
+    "maxTokens": 80,
+    "response_model": ProposeTradePrompt_BarginBuyer_Output,
+}

@@ -517,6 +517,29 @@ class ItemDataModel(BaseModel):
     amount: str = Field(..., description="项目的数量", examples=[200])
 
 
+class ProposeTradeIdentifyDataModel(BaseModel):
+    offer: List[ItemDataModel] = Field(
+        ...,
+        description="要识别的项目列表",
+        examples=[
+            [
+                {"category": "Gold", "item": "Gold", "amount": 200},
+                {"category": "Luxury", "item": "Ivory", "amount": "Any"},
+            ]
+        ],
+    )
+    demand: List[ItemDataModel] = Field(
+        ...,
+        description="要识别的项目列表",
+        examples=[
+            [
+                {"category": "Gold", "item": "Gold", "amount": 200},
+                {"category": "Luxury", "item": "Ivory", "amount": "Any"},
+            ]
+        ],
+    )
+
+
 class AskForObjectIdentifyDataModel(BaseModel):
     demand: List[ItemDataModel] = Field(
         ...,

@@ -37,5 +37,12 @@ IntentionUnderstandingPrompt_Config = {
     "stop": None,
     "temperature": 0.05,
     "maxTokens": 200,
+    "response_model": IntentionUnderstanding_Output,
 }
-DoubleCheckPrompt_Config = IntentionUnderstandingPrompt_Config
+
+DoubleCheckPrompt_Config = {
+    "stop": None,
+    "temperature": 0.05,
+    "maxTokens": 200,
+    "response_model": DoubleCheckPrompt_Output,
+}

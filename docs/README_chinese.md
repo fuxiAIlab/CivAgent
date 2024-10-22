@@ -64,7 +64,7 @@ Please refer to [Documentation](/docs/README_for_contribution.md).
 
 
 ### 致LLM-based Agent研究者
-One of LLM-based Agent exciting prospect is their application across various industries as domain-specific human-like proxies,commonly referred to as “digital employees”. However, it is hard for non-commercial researchers to establish a data flywheel for their agent. 在这个项目中，我们提供了基于Unciv游戏的环境CivSim，您可以开发您自己的Agent并邀请玩家接入您的服务器。这为构建低成本数据飞轮来不断迭代Agent提供了可能。请参考我们的论文和开发者文档。
+基于LLM的Agent令人兴奋的前景之一是它们在各个行业的应用，作为特定领域的类人代理，通常被称为“数字员工”。然而，非商业研究人员很难为他们的代理建立数据飞轮。 在这个项目中，我们提供了基于Unciv游戏的环境CivSim，您可以开发您自己的Agent并邀请玩家接入您的服务器并免费收集使用数据。这为构建低成本数据飞轮来不断迭代Agent提供了可能。请参考我们的论文和开发者文档。
 基于大型语言模型(LLM)的智能体的一个令人兴奋的前景是它们作为特定领域的人类代理在各个行业中的应用，通常被称为“数字员工”。然而，非商业研究人员很难为他们的智能体建立数据飞轮的循环。在这个项目中，我们提供了基于Unciv游戏的环境CivSim，您可以开发您自己的Agent并邀请玩家接入您的服务器。这为构建低成本数据飞轮来不断迭代Agent提供了可能。请参考我们的论文和开发者文档。
 
 

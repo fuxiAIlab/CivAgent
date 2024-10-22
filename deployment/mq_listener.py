@@ -15,9 +15,10 @@ mq = RedisStreamMQ()
 gameid_civ_lock = {}
 # slow request lock
 gameid_civ_slow_lock = {}
+timeout_max = 60
 
 
-async def make_async_request(url: str, data: dict, timeout: int = 15) -> str:
+async def make_async_request(url: str, data: dict, timeout: int = timeout_max) -> str:
     async with aiohttp.ClientSession() as session:
         headers = {"Content-Type": "application/json"}
         try:
@@ -25,7 +26,7 @@ async def make_async_request(url: str, data: dict, timeout: int = 15) -> str:
                 if response.status == 200:
                     return await response.text()
                 else:
-                    logger.error(f"Error for {str(data)[:100]}: {response.status} - {response.reason}")
+                    logger.error(f"Error for {url} {str(data)[:100]}: {response.status} - {response.reason}")
                     return ""
         except aiohttp.ClientError as e:
             logger.error(f"Error for {data}: {e}")
@@ -44,7 +45,7 @@ async def main() -> None:
             msg_d: dict = msgs[1][1]
             civ = msg_d.get("toBot", "")
             gameid_civ = gameid + "_" + civ
-            if gameid_civ in gameid_civ_lock and int(time.time()) - gameid_civ_lock[gameid_civ] > 20:
+            if gameid_civ in gameid_civ_lock and int(time.time()) - gameid_civ_lock[gameid_civ] > timeout_max:
                 del gameid_civ_lock[gameid_civ]
             elif len(gameid_civ_lock) >= 10:
                 logger.debug(f"msg not process since len(gameid_civ_lock)>=10: {msgs}")
@@ -57,8 +58,8 @@ async def main() -> None:
                 break
             elif msg_d.get("type", "chat") == "get_early_decision_async" and gameid_civ not in gameid_civ_slow_lock:
                 gameid_civ_slow_lock[gameid_civ] = int(time.time())
-                # 10s after next_turn event
-                await asyncio.sleep(10)
+                # 1s after next_turn event
+                await asyncio.sleep(1)
                 gameid2info = mq.get("gameid2info_" + gameid, {})
                 robot_names = gameid2info.get("civ_robots", [])
                 try:

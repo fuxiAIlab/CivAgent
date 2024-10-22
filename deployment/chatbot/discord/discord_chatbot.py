@@ -134,7 +134,7 @@ class DiscordChatbot(CivChatbot):
                             "deny": 1024,
                         },
                         {
-                            "id": int(discord_id2robot["Unciv_Bot"]),
+                            "id": int(discord_robot2id["Unciv_Bot"]),
                             "type": 1,  # set member type
                             "allow": 1024,
                             "deny": 0,

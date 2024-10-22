@@ -1,7 +1,7 @@
 from civagent.task_prompt.prompt_hub import (
-    AskForObjectIdentifyDataModel,
     BargainBuyerDataModel,
     BargainSellerDataModel,
+    ProposeTradeIdentifyDataModel,
 )
 
 ProposeTradePrompt_Identify = """
@@ -12,7 +12,7 @@ Return the transactions you identified in json format as follows:
 3. The output format example is: {{" offer ": [{{" category" : "Gold", "item" : "Gold", "amount" : 200}}], "demand" : [{{" category ": "Luxury", "item": "Ivory", "amount": "Any"}}]}}
 """
 
-ProposeTradePrompt_Identify_Output = AskForObjectIdentifyDataModel
+ProposeTradePrompt_Identify_Output = ProposeTradeIdentifyDataModel
 
 ProposeTradePrompt_Chat = """
 You need to analyze the latest conversation between you according to the given format and output the result.
@@ -65,12 +65,23 @@ ProposeTradePrompt_Chat_Config = {
     "maxTokens": 80,
 }
 
-ProposeTradePrompt_Identify_Config = ProposeTradePrompt_Chat_Config
+ProposeTradePrompt_Identify_Config = {
+    "stop": None,
+    "temperature": 0.3,
+    "maxTokens": 80,
+    "response_model": ProposeTradePrompt_Identify_Output,
+}
 
-ProposeTradePrompt_BarginSeller_Config = ProposeTradePrompt_Chat_Config = {
+ProposeTradePrompt_BarginSeller_Config = {
     "stop": None,
     "temperature": 0.3,
     "maxTokens": 200,
+    "response_model": ProposeTradePrompt_BarginSeller_Output,
 }
 
-ProposeTradePrompt_BarginBuyer_Config = ProposeTradePrompt_BarginSeller_Config
+ProposeTradePrompt_BarginBuyer_Config = {
+    "stop": None,
+    "temperature": 0.3,
+    "maxTokens": 80,
+    "response_model": ProposeTradePrompt_BarginBuyer_Output,
+}

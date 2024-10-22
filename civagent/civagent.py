@@ -1,6 +1,7 @@
 import collections
 import random
 from copy import deepcopy
+from datetime import datetime
 from typing import Any, Dict, Tuple
 
 import ujson as json
@@ -375,6 +376,9 @@ class CivAgent:
     def intention_correct(intention_task_reply, req, only_chat):
         assert isinstance(intention_task_reply, dict), type(intention_task_reply)
         raw_intention, intention_degree, intention, response = "", "", "", ""
+        last_intention = req.get("last_dialogue", {}).get("raw_intention", "")
+        last_intention_degree = req.get("last_dialogue", {}).get("intention_degree", "")
+        last_dialogue_ts = req.get("last_dialogue", {}).get("addTime", "")
         intention_str = intention_task_reply.get("intention", "chat")
         for k in intention_space:
             if k in intention_str:
@@ -386,6 +390,14 @@ class CivAgent:
             intention = raw_intention
             intention_degree = "strong"
         elif intention_degree != "strong":
+            # weak intention_degree -> free_chat
+            intention = "chat"
+        elif (
+            raw_intention == last_intention
+            and last_intention_degree == "strong"
+            and utils.time_diff_in_minutes(last_dialogue_ts) <= 1
+        ):
+            # if repeated intention in short time
             intention = "chat"
         else:
             intention = raw_intention
@@ -475,6 +487,7 @@ class CivAgent:
         req["item_detail_space"] = action_space.item_detail_space
         req["intention_space"] = agent_action_space.intention_space
         last_dialogue = CivAgent.get_last_dialogue(req)["debugInfo"]
+        req["last_dialogue"] = last_dialogue
         if not only_chat and last_dialogue.get("bargain_result", "") == "continue":
             intention = "bargain"
         elif not only_chat and last_dialogue.get("doublecheck", "") == "wait":
@@ -519,6 +532,8 @@ class CivAgent:
 
     @staticmethod
     def response(req, intention_result, save_data, use_random=False):
+        intention_result["addTime"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        req = {**req, **intention_result}
         if (
             intention_result.get("doublecheck", "") == "yes"
             and intention_result.get("intention", "") == "propose_trade"
@@ -550,9 +565,10 @@ class CivAgent:
                 },
                 force_json=False,
             )
+            assert isinstance(response, str)
             response = utils.extract_quotes_text(response)
             if decision_raw == "yes":
-                response = (response + admin_reply_make("agree_trade", {}),)
+                response = response + admin_reply_make("agree_trade", {})
             result = {
                 **intention_result,
                 "response": response,

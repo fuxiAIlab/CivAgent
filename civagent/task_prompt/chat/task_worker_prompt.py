@@ -19,4 +19,8 @@ ChatPrompt_Chat_Config = {
     "maxTokens": 80,
 }
 
-ChatPrompt_Close_Config = ChatPrompt_Chat_Config
+ChatPrompt_Close_Config = {
+    "stop": None,
+    "temperature": 0.3,
+    "maxTokens": 80,
+}

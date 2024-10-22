@@ -86,6 +86,8 @@ def extract_trades_info(
     our_offers: dict = {"ourOffers": []}
     civ1_resource_dict: dict = {}
     civ2_resource_dict: dict = {}
+    if not trade_info:
+        return their_offers, our_offers, civ1_resource_dict, civ2_resource_dict
     for standard_our_offer in trade_info[0]["trade"].get("ourOffers", {}):
         our_offer = copy.deepcopy(standard_our_offer)
         civ1_resource_dict[our_offer["name"]] = our_offer.get("amount", "Any")
@@ -174,11 +176,23 @@ def use_skills(
     game_skill_data["skills"][civ_name] = []
     game_skill_data["skill_num"][civ_name] = 0
 
+    proposals_to_remove = []
+    for proposal in proposals:
+        proposal_param = proposal.get("param", {})
+        if proposal_param.get("to_civ", "") not in req.get("diplomatic_civ", []):
+            logger.error(f"""{proposal_param.get("to_civ", "")} not in {req.get('diplomatic_civ', [])}""")
+            proposals_to_remove.append(proposal)
+
+    for proposal in proposals_to_remove:
+        proposals.remove(proposal)
+
     if simulation:
         req["simulator"] = []
         req["last_functions"] = functions
         if proposals is not None and len(proposals) > 0:
             for proposal in proposals:
+                if "intention" not in proposal:
+                    continue
                 key = proposal["intention"]
                 param = [proposal["param"][x] for x in action_space.decision_space[key]["param"]]
                 score = simulation_score(gameinfo, robot_name, key, param)
@@ -218,7 +232,9 @@ def use_skills(
         )
         dialogue = dialogue["dialogue"]
         proposal["dialogue"] = dialogue
-        game_skill_data["skills"][civ_name].append(proposal)
+        proposal_param = proposal.get("param", {})
+        if proposal_param.get("to_civ", "") in req.get("diplomatic_civ", []):
+            game_skill_data["skills"][civ_name].append(proposal)
 
     tech_decision = choose_tech(gameinfo_str, civ_name, model, req)
     logger.debug(f"{robot_name} choose tech {tech_decision}")

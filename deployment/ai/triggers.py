@@ -3,7 +3,7 @@ from datetime import datetime
 
 from civagent.utils import memory_utils
 from civagent.utils.prompt_utils import event_trigger_make
-from civsim import utils
+from civsim import logger, utils
 from deployment.chatbot.chatmanager import ChatManager
 from deployment.redis_mq import RedisStreamMQ
 
@@ -20,8 +20,9 @@ def trigger_next_turn(data, gameid):
     civ_name = utils.get_civ_name(save_data, civ_ind)
     events = memory_utils.Memory.get_event_memory(save_data, civ_ind)
     events = [event for event in events if event["turns"] == turns - 1 and event["turns"] > updated_turns]
+    logger.debug(f"events in trigger_next_turn at turns {turns-1}: {events}")
     if len(events) == 0:
-        text = event_trigger_make("turn_event_default", {**gameid2info, **{"turns": turns}})
+        text = event_trigger_make("turn_event_default", {**gameid2info, **{"turns": turns - 1}})
         ChatManager.send_msg_by_http(gameid, text, from_civ="admin", is_group=1)
     else:
         for event in events:
@@ -36,16 +37,16 @@ def trigger_next_turn(data, gameid):
 
 
 def trigger_declare_war(event_data, gameid):
-    gameinfo = mq.get(f"gameinfo_{gameid}")
     gameid2info = mq.get("gameid2info_" + gameid, {})
+    assert isinstance(gameid2info, dict), f"{gameid2info} is not a dict"
     text = event_data["event"]
     pattern = r"\b(?:" + "|".join(ChatManager.robot_names) + r")\b"
     matches = re.findall(pattern, text, flags=re.IGNORECASE)
     attack_civ_name, attacked_civ_name = matches[0].lower(), matches[1].lower()
     # Imitate player dialogue to enable proactive conversation by the agent.
-    if attack_civ_name == gameinfo.get("player_civ", ""):
+    if attack_civ_name == gameid2info.get("player_civ", ""):
         trigger_text = event_trigger_make("declare_war_event", gameid2info)
-    elif attacked_civ_name == gameinfo.get("player_civ", ""):
+    elif attacked_civ_name == gameid2info.get("player_civ", ""):
         trigger_text = event_trigger_make(
             "heard_war_event",
             {**gameid2info, **{"attack_civ_name": attack_civ_name}},

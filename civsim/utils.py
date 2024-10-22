@@ -56,7 +56,8 @@ def check_and_bind_gameid(text: str) -> str:
         logger = logger.bind(**{"game_id": result[0]})
         return result[0]
     else:
-        logger.error(f"utils.check_and_bind_gameid get illegal game_id {text}")
+        if "-" in text:
+            logger.error(f"utils.check_and_bind_gameid get illegal game_id {text}")
         return ""
 
 
@@ -105,20 +106,24 @@ def set_latest_savefile(filepath: str, data: Dict[str, Any]) -> bool:
 
 
 def time_diff_in_minutes(ts: Union[str, int], ts2: Optional[Union[str, int]] = None) -> float:
-    if not isinstance(ts, str):
-        ts = int(float(ts))
-        if ts2 is None:
-            ts2 = datetime.datetime.now().timestamp() * 1000
-        time_difference = ts2 - ts
-        minutes_difference = time_difference / (1000 * 60)
-        return minutes_difference
-    else:
-        if ts2 is None:
-            ts2 = datetime.datetime.now()
-        ts = datetime.datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
-        time_difference = ts2 - ts
-        minutes_difference = time_difference.total_seconds() / 60
-        return minutes_difference
+    try:
+        if not isinstance(ts, str):
+            ts = int(float(ts))
+            if ts2 is None:
+                ts2 = datetime.datetime.now().timestamp() * 1000
+            time_difference = ts2 - ts
+            minutes_difference = time_difference / (1000 * 60)
+            return minutes_difference
+        else:
+            if ts2 is None:
+                ts2 = datetime.datetime.now()
+            ts = datetime.datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
+            time_difference = ts2 - ts
+            minutes_difference = time_difference.total_seconds() / 60
+            return minutes_difference
+    except Exception:
+        logger.exception(f"Error in time_diff_in_minutes for {ts} and {ts2}", exc_info=True)
+        return 100
 
 
 def contains_chinese(text: str) -> bool:
@@ -147,6 +152,11 @@ def fix_civ_name(civ_name: str) -> str:
 
 def get_civ_index(save_data: Dict[str, Any], civ_name: str = "") -> int:
     # Safely return the index of the civilization or a default value
+    if isinstance(save_data, str):
+        try:
+            save_data = json.loads(save_data)
+        except json.JSONDecodeError as e:
+            logger.error(f"utils.get_civ_index get error {e}")
     assert isinstance(save_data, dict), type(save_data)
     civs = save_data.get("civilizations", [])
     if civ_name and len(civ_name) > 1:
@@ -395,7 +405,7 @@ def add_common_resource(
         elif key == "Open Borders":
             save_data = open_borders(save_data, civ_name_1, civ_name_2)
         elif "War" in key:
-            save_data = declare_war(save_data, civ_name_1, key[10:])
+            save_data = declare_war(save_data, civ_name_1, key.split("_")[1])
         else:
             save_data = annex_city(save_data, civ_name_2, civ_name_1, key)
     for key, value in civ2_resource_dict.items():
@@ -406,7 +416,7 @@ def add_common_resource(
         ):
             civ2_luxury_resource_dict[key] = value
         elif "War" in key:
-            save_data = declare_war(save_data, civ_name_1, key[10:])
+            save_data = declare_war(save_data, civ_name_1, key.split("_")[1])
         elif key == "Defensive Pact" or key == "Research Agreement" or key == "Open Borders" or key in civs_name:
             continue
         else:
@@ -963,7 +973,7 @@ def get_stats(save_data: Dict[str, Any], civ_ind: int) -> Dict[str, int]:
 
 def get_all_civs(save_data: Dict[str, Any]) -> List[str]:
     civs = save_data["civilizations"]
-    return [x["civName"].lower() for x in civs if x["civName"] != "Barbarians"]
+    return [x["civName"].lower() for x in civs if x["civName"] != "Barbarians" and "cityStatePersonality" not in x]
 
 
 def change_relation_level(relation: str, alter: int = 0) -> str:
@@ -1042,7 +1052,7 @@ def get_decision_result(
                     )
             except Exception as e:
                 logger.exception(
-                    f"""error in cget_decision_result {key}, {req}, {e}""",
+                    f"""error in get_decision_result {key}, {req}, {e}""",
                     exc_info=True,
                 )
     decisions = action_space.decision_space[intention]["decisions"]

@@ -81,10 +81,18 @@ def save2req(
     chat_history = agent.memory.get_chat_memory(receiver_civ_name)
     dialogue_history = agent.memory.chat2dialogue(chat_history, speaker_civ_name)
     event_history = agent.memory.get_event_memory(save_data, receiver_ind)
-    tmp_req["language"] = save_data["gameParameters"]["language"]
+    tmp_req["language"] = save_data["gameParameters"].get("language", "")
     tmp_req["llm_api_key"] = save_data["gameParameters"].get("llm_api_key", "")
     tmp_req["llm_model"] = save_data["gameParameters"].get("llm_model", "")
     tmp_req["round"] = save_data.get("turns", 0)
+    for civ in save_data.get("civilizations", []):
+        if civ.get("civName", "").lower() == agent.civ_name:
+            tmp_req["diplomatic_civ"] = [
+                k.lower()
+                for k, v in civ.get("diplomacy", {}).items()
+                if "cityStatePersonality" not in v and k != "barbarians"
+            ]
+            break
     if "event_history" in tmp_req:
         tmp_req["event_history"].extend(event_history)
     else:

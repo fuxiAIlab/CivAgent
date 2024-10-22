@@ -142,7 +142,7 @@ def getEarlyDecision():
             for event in event_history
             if int(event.get("turns", 0)) >= turns and "declared war" in event.get("text", "")
         ]
-        if int(game_skill_data["turns"]) >= int(save_data["turns"]) and len(war_events) < 1:
+        if int(game_skill_data.get("turns", 0)) >= int(save_data.get("turns", 0)) and len(war_events) < 1:
             logger.info(f"{civ_name} use_async in getEarlyDecision: {game_skill_data}")
             game_skill_data = game_skill_data
         else:
@@ -153,13 +153,13 @@ def getEarlyDecision():
                 f"multiplayer_{gameid}_{civ_name}_skill_data",
                 json.dumps(game_skill_data),
             )
-        for skill in game_skill_data["skills"][civ_name]:
+        for skill in game_skill_data["skills"].get(civ_name, []):
             if skill["to_civ"].lower() == player_civ.lower():
                 ChatManager.send_msg_by_http(gameid, skill["dialogue"], civ_name, skill["to_civ"].lower(), 0)
         pair_dict = {"result": "success"}
         return json.dumps(pair_dict)
     else:
-        assert int(game_skill_data["turns"]) < turns, f"{civ_name} turns: {game_skill_data['turns']}, {turns}"
+        assert int(game_skill_data.get("turns", 0)) < turns, f"{civ_name} turns: {game_skill_data['turns']}, {turns}"
         result, game_skill_data = use_skills(data["gameinfo"], civ_name, config_data, game_skill_data)
         logger.info(f"{civ_name} getEarlyDecision async: {game_skill_data}")
         mq.set(f"multiplayer_{gameid}_{civ_name}_skill_data", json.dumps(game_skill_data))

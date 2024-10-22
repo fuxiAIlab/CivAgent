@@ -9,7 +9,6 @@ from civagent.utils.memory_utils import Memory
 from civagent.utils.prompt_utils import admin_reply_make
 from civsim import logger, utils
 from deployment.chatbot.chatmanager import ChatManager
-from deployment.chatbot.popo.popo_chatbot import PopoChatbot
 from deployment.redis_mq import RedisStreamMQ
 
 app = Flask(__name__)
@@ -89,13 +88,16 @@ def admin_logic(
             mq.set(f"civ2userid_{gameid}_{player_civ}", from_name)
             civ_robots = gameinfo.get("civ_robots")
             prev_team_id = chat_manager.get_teamid(platform)
+            # create new team chat
             if gameid != prev_gameid or (prev_team_id is None or len(prev_team_id) < 2):
                 prev_team_id = chat_manager.create_team(
                     team_name=admin_reply_make("team_name", gameid2info),
                     uids=[from_name, *civ_robots],
                     platform=platform,
                 )
-
+            # expire prev_gameid
+            if gameid != prev_gameid:
+                mq.redis.expire(prev_gameid, 1)
             say_hello(
                 chat_manager,
                 civ_robots,
@@ -191,8 +193,10 @@ def reply(data: Dict[str, Any], admin_name: str, platform: str) -> None:
                 perv_gameid,
                 platform,
             )
+            chat_managers[from_name] = ChatManager(from_name)
         else:
             chat_manager.game_id = perv_gameid if gameinfo else ""
+            chat_manager.game_info = gameinfo
             gameid = chat_manager.game_id
             chatmessage = chat_manager.convert_to_chatmessage(data, platform)
             chatmemory = chat_manager.get_chatmemory(chatmessage)
@@ -234,7 +238,7 @@ def test_msg_push_discord() -> Any:
             reply(data, admin_name, platform)
         except Exception as e:
             logger.exception(f"error {e}.", exc_info=True)
-        return {"success": ""}
+        return jsonify({"success": True}), 200
     else:
         return {"data": "Unsupported request method"}
 
@@ -258,6 +262,7 @@ def test_msg_push_feishu() -> Any:
 
 @app.route("/open-apis/fuxi-unciv/SendMsg", methods=["POST"])
 def test_send_msg() -> Any:
+    # from bot to human
     if request.method == "POST":
         try:
             data = request.get_json()
@@ -281,7 +286,7 @@ def test_send_msg() -> Any:
             chatmemory = chat_manager.get_chatmemory(chatmessage)
             chatmemory_d = asdict(chatmemory)
             # use debugInfo of request.get_json()
-            chatmemory_d["debugInfo"] = json.dumps(data["debugInfo"])
+            chatmemory_d["debugInfo"] = json.dumps(data["debugInfo"], ensure_ascii=False)
             # do not persist error log
             if len(data["debugInfo"]) > 0:
                 Memory.persist_user_data({user_id: chatmemory_d})

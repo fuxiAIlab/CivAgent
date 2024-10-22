@@ -193,12 +193,12 @@ class ChatManager:
 
     @staticmethod
     def get_chatmemory_by_gameid(
-        game_id: str,
-        text: str,
-        from_civ: str,
-        to_civ: str,
-        is_group: int,
-        debug_info: Dict[str, Any] = {},
+            game_id: str,
+            text: str,
+            from_civ: str,
+            to_civ: str,
+            is_group: int,
+            debug_info: Dict[str, Any] = {},
     ) -> ChatMemory:
         platform = mq.get(f"gameid2platform_{game_id}", "")
         gameinfo = mq.get("gameid2info_" + game_id, {})
@@ -230,21 +230,28 @@ class ChatManager:
 
     @staticmethod
     def send_msg_by_http(
-        game_id: str,
-        text: str,
-        from_civ: str,
-        to_civ: str = "",
-        is_group: int = 0,
-        debug_info: Dict[str, Any] = {},
+            game_id: str,
+            text: str,
+            from_civ: str,
+            to_civ: str = "",
+            is_group: int = 0,
+            debug_info: Dict[str, Any] = {},
     ) -> bool:
         headers = {"Content-Type": "application/json"}
         url = config_data["chat_server"]["url"] + "open-apis/fuxi-unciv/SendMsg"
+        user_id = mq.get(f"gameid2userid_{game_id}", "")
+        if (
+                not (game_id and mq.get(game_id, "") and mq.get(f"userid2gameid_{user_id}", "") == game_id)
+                and is_group == 0
+        ):
+            text = f"Game id {game_id} not found. You may have changed to another gameid."
+            logger.error(f"Game id {game_id} not found in redis. Player may change to another gameid.")
         try:
             chatmemory = asdict(
                 ChatManager.get_chatmemory_by_gameid(game_id, text, from_civ, to_civ, is_group, debug_info)
             )
-            response = requests.post(url, data=json.dumps(chatmemory), headers=headers)
-            logger.debug(f"Send msg by send_msg_by_http: {response.text}")
+            requests.post(url, data=json.dumps(chatmemory, ensure_ascii=False), headers=headers, timeout=10)
+            # logger.debug(f"Send msg by send_msg_by_http: {response.text}")
         except Exception as e:
             # catch Unknow platform, etc.
             logger.exception(f"Error in send_msg_by_http: {e}", exc_info=True)

@@ -43,19 +43,17 @@ default_chat_memory = ChatMemory(
     debugInfo={},
 )
 
+chat_file_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../deployment/data")
+
 
 class Memory:
     def __init__(self, user_id: str, game_id: str, filter_id: str = ""):
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        chat_file_dir = os.path.join(current_dir, "../../deployment/data")
         self.chat_file = os.path.normpath(os.path.join(chat_file_dir, str(game_id) + ".txt"))
         self.filter_id = filter_id
         self.game_id = game_id
 
     @staticmethod
-    def persist_user_data(user_data: Dict[str, Any], data_directory: str = "../../data/") -> None:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        data_directory = os.path.join(current_dir, data_directory)
+    def persist_user_data(user_data: Dict[str, Any], data_directory: str = chat_file_dir) -> None:
         if not os.path.exists(data_directory):
             os.makedirs(data_directory)
         for user_id, data in user_data.items():
@@ -123,6 +121,7 @@ class Memory:
             turns = int(game_info.get("turns", 0))
         history_events = [(int(x.get("turn", 0)), x.get("notifications", {})) for x in notifications_log]
         events = [(turns, notifications)] + history_events
+        logger.debug(f"get_event_memory at turns {turns}: {events}")
         tmp = []
         for turn, event_list in events:
             for event in event_list:

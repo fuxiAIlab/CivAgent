@@ -21,4 +21,10 @@ AskForObjectPrompt_Chat_Config = {
     "temperature": 0.3,
     "maxTokens": 80,
 }
-AskForObjectPrompt_Identify_Config = AskForObjectPrompt_Chat_Config
+
+AskForObjectPrompt_Identify_Config = {
+    "stop": None,
+    "temperature": 0.3,
+    "maxTokens": 80,
+    "response_model": AskForObjectPrompt_Identify_Output,
+}

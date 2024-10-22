@@ -29,6 +29,7 @@ class RedisStreamMQ:
     def xadd(self, id_: str, message: Dict[str, Union[str, int]]) -> str:
         stream_name = f"stream_{id_}"
         message_id = self.redis.xadd(stream_name, message)
+        logger.debug(f"redis_mq xadd {stream_name} {message_id} {message}")
         return message_id
 
     def xread(self, id_: str, last_id: str = "$", block: int = 1, count: int = None) -> Any:
@@ -41,6 +42,7 @@ class RedisStreamMQ:
         if isinstance(value, dict):
             value = json.dumps(value)
         if expiration_time > 0:
+            # expiration_time is in seconds
             self.redis.setex(key, value=value, time=expiration_time)
         else:
             self.redis.set(key, value)

@@ -5,6 +5,8 @@ English | [中文](docs/README_chinese.md) |
 
 [![Demo Video](https://res.cloudinary.com/marcomontalbano/image/upload/v1719391630/video_to_markdown/images/youtube--AapuuHgzXqE-c05b58ac6eb4c4700831b2b3070cd403.jpg)](https://www.youtube.com/watch?v=AapuuHgzXqE "Demo Video")
 
+**Moved the project repository to a new location: https://github.com/asdqsczser/CivAgent.**
+
 CivAgent is an LLM-based Human-like Agent acting as a Digital Player within the strategy game [Unciv](https://github.com/yairm210/Unciv).
 The project aims to address the difficulty of players not being able to find human playmates,
 and seeks to construct a low-cost data flywheel to aid in the research of LLM-based Agents.
@@ -23,14 +25,16 @@ Game Client Download (player version, with Discord chat function, to be released
 
 Unciv We Used (source code): https://github.com/asdqsczser/Unciv/tree/release/fuxi_ver
 
-Paper: https://openreview.net/forum?id=AuT65qKLrr
+Paper: https://arxiv.org/pdf/2502.20807
 
 Appendix: https://github.com/fuxiAIlab/CivAgent/blob/main/paper_appendix.pdf
 
 YouTube: https://www.youtube.com/playlist?list=PL9G00-od8ezYNblsqMca7urrLoHSZ7Vs3
 
 ## News
-![new](/assets/new.gif) **06/20/2024**: Code for benchmark reproduction (developer version) of research paper is open-sourced. The version for players is expected to be released in early July.
+![new](/assets/new.gif) **03/17/2025**: Moved the project repository to a new location: https://github.com/asdqsczser/CivAgent.
+
+**06/20/2024**: Code for benchmark reproduction (developer version) of research paper is open-sourced. The version for players is expected to be released in early July.
 
 **06/09/2024**: The paper is submitted to NeurIPS 2024 Track Datasets and Benchmarks, [Under Review](https://openreview.net/forum?id=AuT65qKLrr).
 
@@ -116,16 +120,16 @@ We posit that sandbox games are the ideal platform for creating true AI Native G
 
 ## 📖 Authors and Citation
 
-**Authors:** [Wang Kai](https://scholar.google.com/citations?user=nrKSdzcAAAAJ&hl=en) (AI Researcher, Netease Fuxi Lab) and [Wang Jiawei](https://scholar.google.com/citations?user=pOxT1NAAAAAJ&hl=zh-CN) (master candidate at the University of Chinese Academy of Sciences, completed during internship)
+**Authors:** [Wang Kai](https://scholar.google.com/citations?user=nrKSdzcAAAAJ&hl=en) (AI Researcher, Netease Fuxi Lab) and [Wang Jiawei](https://scholar.google.com/citations?user=pOxT1NAAAAAJ&hl=zh-CN) (master candidate at the University of Chinese Academy of Sciences, completed during internship) and [Lin Shaojie](
+jjkstra@foxmail.com) (master candidate at the Minnan Normal University, completed during internship).
 
 Welcome to cite our paper.
 
 ```
-@misc{
-anonymous2024digitalplayer,
-title={Digital Player: Evaluating Large Language Models based Human-like Agent in Games},
-author={Jiawei Wang and Kai Wang and Runze Wu and Bihan Xu and Lingeng Jiang and Shiwei Zhao and Renyu Zhu and Haoyu Liu and Zhipeng Hu and Zhong Fan and LILE and Tangjie Lv and Changjie Fan},
-year={2024},
-url={https://openreview.net/forum?id=AuT65qKLrr}
+@article{wang2025digital,
+  title={Digital Player: Evaluating Large Language Models based Human-like Agent in Games},
+  author={Wang, Jiawei and Wang, Kai and Lin, Shaojie and Wu, Runze and Xu, Bihan and Jiang, Lingeng and Zhao, Shiwei and Zhu, Renyu and Liu, Haoyu and Hu, Zhipeng and others},
+  journal={arXiv preprint arXiv:2502.20807},
+  year={2025}
 }
 ```

@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, Union
+from typing import Any, Dict, List, Union
 
 import jpype
 import ujson as json
@@ -384,7 +384,7 @@ def predicted(gameinfo: str, turns: int, diplomacy_flag: bool, worker_auto: bool
         return json.loads(str(savegame))
 
 
-def getTechToResearchAvailable(gameinfo: str, civ1_name: str) -> str:
+def getTechToResearchAvailable(gameinfo: str, civ1_name: str) -> List[str]:
     """
     Retrieves available technologies for research for a given civilization.
     Parameters:
@@ -402,7 +402,7 @@ def getTechToResearchAvailable(gameinfo: str, civ1_name: str) -> str:
     uncivGame.Current = uncivGame
     civ1 = gameinfo.getCivilization(utils.fix_civ_name(civ1_name))
     tech = NextTurnAutomation.INSTANCE.getGroupedResearchableTechsAsString(civ1)
-    tech = str(tech)
+    tech = str(tech).replace("\n", ", ").split(", ")
     return tech
 
 
@@ -423,9 +423,15 @@ def getProductionToBuildAvailable(gameinfo: str, civ1_name: str) -> str:
     uncivGame.setGameInfo(gameinfo)
     uncivGame.Current = uncivGame
     civ1 = gameinfo.getCivilization(utils.fix_civ_name(civ1_name))
-    building = NextTurnAutomation.INSTANCE.getAllProductionToBuild_available(civ1)
-    building = str(building)
-    return building
+    buildings = NextTurnAutomation.INSTANCE.getAllProductionToBuild_available(civ1)
+    buildings = str(buildings).rstrip("\n").replace(" : ", ": ").split("\n")
+    productions = []
+    for building_str in buildings:
+        idx = building_str.find(": ")
+        city = building_str[:idx]
+        available_productions = building_str[idx + len(": ") :].split(", ")
+        productions.append({"city": city, "available_productions": available_productions})
+    return productions
 
 
 def chooseTechToResearch(gameinfo: str, civ1_name: str) -> str:

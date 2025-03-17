@@ -588,6 +588,22 @@ url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 reference = "THU-PyPI"
 
 [[package]]
+name = "chevron"
+version = "0.14.0"
+description = "Mustache templating language renderer"
+optional = false
+python-versions = "*"
+files = [
+    {file = "chevron-0.14.0-py3-none-any.whl", hash = "sha256:fbf996a709f8da2e745ef763f482ce2d311aa817d287593a5b990d6d6e4f0443"},
+    {file = "chevron-0.14.0.tar.gz", hash = "sha256:87613aafdf6d77b6a90ff073165a61ae5086e21ad49057aa0e53681601800ebf"},
+]
+
+[package.source]
+type = "legacy"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+reference = "THU-PyPI"
+
+[[package]]
 name = "click"
 version = "8.1.7"
 description = "Composable command line interface toolkit"
@@ -4226,21 +4242,6 @@ url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 reference = "THU-PyPI"
 
 [[package]]
-name = "stubs"
-version = "1.0.0"
-description = "Tools for setting up stubs and mocks."
-optional = false
-python-versions = "*"
-files = [
-    {file = "stubs-1.0.0-py3-none-any.whl", hash = "sha256:f328a0f99880b0684db69288dcb104fa93d942df298ddd1659edaa7521415da8"},
-]
-
-[package.source]
-type = "legacy"
-url = "https://pypi.tuna.tsinghua.edu.cn/simple"
-reference = "THU-PyPI"
-
-[[package]]
 name = "tenacity"
 version = "8.5.0"
 description = "Retry code until it succeeds"
@@ -5005,4 +5006,4 @@ reference = "THU-PyPI"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "67d447d4e78f3312909c0ede3307a01c5f786a71f09ddb18d202ea8e98faeb07"
+content-hash = "9c34f1d0aa253127579c82930c4d90b00db0b57e1f4a02533ec6ebd2bd3d3dbe"

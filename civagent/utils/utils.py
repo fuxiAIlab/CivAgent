@@ -78,8 +78,10 @@ def save2req(
     if speaker_ind == receiver_ind:
         speaker_ind = (speaker_ind + 1) % len(civ_names)
     speaker_civ_name = utils.get_civ_name(save_data, speaker_ind)
+
     chat_history = agent.memory.get_chat_memory(receiver_civ_name)
     dialogue_history = agent.memory.chat2dialogue(chat_history, speaker_civ_name)
+
     event_history = agent.memory.get_event_memory(save_data, receiver_ind)
     tmp_req["language"] = save_data["gameParameters"].get("language", "")
     tmp_req["llm_api_key"] = save_data["gameParameters"].get("llm_api_key", "")
@@ -101,6 +103,7 @@ def save2req(
         tmp_req["dialogue_history"].extend(dialogue_history)
     else:
         tmp_req["dialogue_history"] = dialogue_history
+
     tmp_req["utterance"] = text
     # todo Output relation positioning in the game
     tmp_req["relation"]["closeness"] = agent.relations[f"{receiver_civ_name}#{speaker_civ_name}"]["closeness"]
@@ -110,27 +113,29 @@ def save2req(
     tmp_req["relation"]["proximity"] = agent.relations[f"{receiver_civ_name}#{speaker_civ_name}"]["proximity"]
     # todo Position of the army
     tmp_req["relation"]["army_proximity"] = agent.relations[f"{receiver_civ_name}#{speaker_civ_name}"]["army_proximity"]
-    tmp_req["civ_name"] = receiver_civ_name
+    tmp_req["civ_name"] = receiver_civ_name.lower()
     # todo civ_name_2 -> civ_name_oppo
-    tmp_req["civ_name_1"] = receiver_civ_name
-    tmp_req["civ_name_2"] = speaker_civ_name
-    tmp_req["speaker_persona"]["civ_name"] = speaker_civ_name
-    speaker_civ_stats = agent.oppo_agent[speaker_civ_name].strengths_info
+    tmp_req["civ_name_1"] = receiver_civ_name.lower()
+    tmp_req["civ_name_2"] = speaker_civ_name.lower()
+    tmp_req["speaker_persona"]["civ_name"] = speaker_civ_name.lower()
+    speaker_civ_stats = agent.oppo_agent[speaker_civ_name].strength_info
     tmp_req["speaker_persona"] = dict({**tmp_req["speaker_persona"], **speaker_civ_stats})
-    tmp_req["receiver_persona"]["civ_name"] = receiver_civ_name
-    receiver_civ_stats = agent.strengths_info
+    tmp_req["receiver_persona"]["civ_name"] = receiver_civ_name.lower()
+    receiver_civ_stats = agent.strength_info
     tmp_req["receiver_persona"] = dict({**tmp_req["receiver_persona"], **receiver_civ_stats})
     # agent_profile
-    tmp_req["civ_names"] = ",".join(agent.civ_names)
-    tmp_req["war_civs"] = ",".join(agent.war_civs)
+    tmp_req["civ_names"] = list(agent.known_civs)
+    tmp_req["known_civs"] = list(agent.known_civs)
+    tmp_req["is_known_civ"] = True if speaker_civ_name in agent.known_civs else False
     tmp_req["is_at_war"] = True if speaker_civ_name in agent.war_civs else False
+    tmp_req["war_civs"] = ",".join(agent.war_civs)
     tmp_req["friend_civs"] = ",".join(agent.friend_civs)
     tmp_req["potential_enemy_civs"] = ",".join(agent.potential_enemy_civs)
     tmp_req["potential_friend_civs"] = ",".join(agent.potential_friend_civs)
     tmp_req["last_plans"] = agent.last_plans
     # strongest_civs
     all_civ_stats = [
-        (civ_name, agent.oppo_agent[civ_name].strengths_info)
+        (civ_name, agent.oppo_agent[civ_name].strength_info)
         for civ_name in agent.civ_names
         if civ_name in agent.oppo_agent
     ]
@@ -168,4 +173,19 @@ def save2req(
         "strength",
     )
     tmp_req["objective"] = ",".join(agent.objective)
+    tmp_req["trait"] = agent.trait
+    tmp_req["oppo_agent"] = agent.oppo_agent
+    tmp_req["strength_info"] = agent.strength_info
+
+    strength_info_of_all = []
+    if tmp_req["known_civs"]:
+        strength_info_of_all = [
+            {"civ_name": civ_name, "strength": agent.oppo_agent[civ_name].strength_info}
+            for civ_name in tmp_req["known_civs"]
+        ]
+    strength_info_of_all.append({"civ_name": tmp_req["civ_name"], "strength": agent.strength_info})
+    tmp_req["strength_info_of_all"] = strength_info_of_all
+
+    tmp_req["gameid"] = save_data["gameId"]
+
     return tmp_req

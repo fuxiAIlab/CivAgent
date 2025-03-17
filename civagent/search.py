@@ -37,33 +37,33 @@ class Search:
     # Here, 'func' corresponds to the keys in the action space.
     # parse intention to operations [func1:[para1,...], func2]
     @staticmethod
-    def parse_intention(llm_response: Dict, civ_name_1: str, civ_name_2: str) -> Optional[List[Dict[str, Any]]]:
-        if isinstance(llm_response, dict):
+    def parse_intention(trade_content: Dict, civ_name_1: str, civ_name_2: str) -> Optional[List[Dict[str, Any]]]:
+        if isinstance(trade_content, dict):
             operations = []
             civ_1_resource_dict = {}
             civ_2_resource_dict = {}
-            if "intention" in llm_response.keys():
-                intention = llm_response["intention"]
+            if "intention" in trade_content.keys():
+                intention = trade_content["intention"]
                 if intention in intention_space:
-                    if intention == "chat" or intention == "nonsense":
-                        return None
-                    elif intention == "propose_trade":
-                        # It's quite complex; the results identified by the LLM may not necessarily be barter exchanges,
-                        # they could also be exchanges of one intention for goods, such as offering 300 gold in demand for an alliance.
-                        pass
-                    else:
-                        # Intention refers to the desired action, and one might offer some items themselves.
-                        if intention == "seek_peace":
-                            operations.append(
-                                {
-                                    "action": "seek_peace",
-                                    "paras": [civ_name_1, civ_name_2],
-                                }
-                            )
-                        else:
-                            operations.append({"action": intention, "paras": [civ_name_1, civ_name_2]})
+                    # if intention == "chat" or intention == "nonsense":
+                    #     return None
+                    # elif intention == "propose_trade":
+                    #     # It's quite complex; the results identified by the LLM may not necessarily be barter exchanges,
+                    #     # they could also be exchanges of one intention for goods, such as offering 300 gold in demand for an alliance.
+                    #     pass
+                    # else:
+                    #     # Intention refers to the desired action, and one might offer some items themselves.
+                    #     if intention == "seek_peace":
+                    #         operations.append(
+                    #             {
+                    #                 "action": "seek_peace",
+                    #                 "paras": [civ_name_1, civ_name_2],
+                    #             }
+                    #         )
+                    #     else:
+                    #         operations.append({"action": intention, "paras": [civ_name_1, civ_name_2]})
 
-                    offer_content = llm_response["detail"]["offer"]
+                    offer_content = trade_content["detail"]["offer"]
                     for item in offer_content:
                         category = item["category"].lower()
                         if item["amount"] == "Any":
@@ -94,7 +94,7 @@ class Search:
                         else:
                             pass
 
-                    demand_content = llm_response["detail"]["demand"]
+                    demand_content = trade_content["detail"]["demand"]
                     for item in demand_content:
                         # item['item']= item['item'].capitalize()
                         category = item["category"].lower()
@@ -124,6 +124,7 @@ class Search:
                                 }
                             )
                     if len(civ_1_resource_dict) or len(civ_2_resource_dict):
+                        # todo unity gold and luxury operation
                         operations.append(
                             {
                                 "action": "propose_trade",
@@ -202,6 +203,7 @@ class Search:
 
     def evaluate(self, state: Dict[str, List[int]]) -> int:
         trade_content = self.to_trade_content(state)
+        # todo support more than propose_tarde
         operations = Search.parse_intention(trade_content, self.speaker_civ, self.receiver_civ)
         if len(operations) > 0:
             (

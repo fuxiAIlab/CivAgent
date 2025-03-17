@@ -14,3 +14,4 @@ from .items import (
 )
 from .proximity import ProximitySpace
 from .relations import RelationSpace
+from .traits import trait_space, trait_space_list

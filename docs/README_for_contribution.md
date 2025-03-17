@@ -18,7 +18,7 @@ git clone -b develop https://github.com/fuxiAIlab/CivAgent.git
     - Create a virtual environment with Python 3.10(at least): `uv venv -p python3.10`(run in repo root directory)
     - Activate the virtual environment: `source .venv/bin/activate`
 
-3. Install Crowdlib Dependencies
+3. Install Dependencies
     - `poetry install`
 
 4. Testing(Make sure all tests pass)

@@ -96,6 +96,7 @@ def gm_commander(gm_text: str, save_data: Dict[str, Any]) -> Tuple[Dict[str, Any
 
 def process(data: ChatMemory) -> None:
     gameid, from_name = data.gameId, data.fromCiv
+    # todo not reply group chat now
     robot_name, text = data.toCiv, data.notify
     assert utils.check_and_bind_gameid(gameid) == gameid, gameid
     game_context = mq.get("gameid2info_" + gameid, {})
@@ -143,10 +144,10 @@ def process(data: ChatMemory) -> None:
                 agent.init()
                 agent.update(save_data)
                 req = save2req(save_data, agent, text, from_name, robot_name)
-                logger.info(f"save2req: {req}")
-                intention_result, _ = civagent.CivAgent.intention_understanding(req, only_chat=is_bootstrap)
-                logger.info(f"intention_result: {intention_result}")
-                response_d, _, decision_gm_fn = civagent.CivAgent.response(
+                logger.debug(f"save2req: {req}")
+
+                intention_result = civagent.CivAgent.intention_understand(req, only_chat=is_bootstrap)
+                response_d, decision_gm_fn = civagent.CivAgent.response(
                     req, intention_result, save_data, use_random=False
                 )
                 logger.info(f"response_debug: {response_d}")

@@ -10,6 +10,8 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 import ujson as json
 
+from civagent.utils import workflow_utils
+from civagent.utils.prompt_utils import generate_prompt
 from civsim import action_space, logger
 from civsim.simulator import simulator
 
@@ -390,7 +392,7 @@ def add_common_resource(
     civ1_luxury_resource_dict = {}
     civ2_luxury_resource_dict = {}
     civs_name = get_all_civs(save_data)
-    logger.info(f"civ1_resource_dict :{civ1_resource_dict}, civ2_resource_dict :{civ2_resource_dict}")
+    logger.debug(f"civ1_resource_dict :{civ1_resource_dict}, civ2_resource_dict :{civ2_resource_dict}")
     for key, value in civ1_resource_dict.items():
         if (
             key.capitalize() in action_space.luxury_space
@@ -647,11 +649,10 @@ def add_luxury_resource(
                 "icons": ["OtherIcons/Pillage", "England"],
             }
         ]
-
-        logger.info(
-            f"add_luxury_resource: civ1_luxury_resource_offer :{civ1_luxury_resource_offer}, "
-            f"civ2_luxury_resource_offer :{civ2_luxury_resource_offer}"
-        )
+        # logger.info(
+        #     f"add_luxury_resource: civ1_luxury_resource_offer :{civ1_luxury_resource_offer}, "
+        #     f"civ2_luxury_resource_offer :{civ2_luxury_resource_offer}"
+        # )
         [notifications.append(y) for y in save_data["civilizations"][ind_player].get("notifications", [])]
         save_data["civilizations"][ind_player]["notifications"] = notifications
     return save_data
@@ -945,16 +946,7 @@ def get_proximity(save_data: Dict[str, Any], first_civ_index: int, second_civ_na
 # Get the statistical panel data for the country
 # Integral contrast value, {'S': civilization, 'N': population, 'C': food production, 'P' : capacity, 'G': money, 'T': territory, 'F': military power, 'H': happy, 'W': science and technology, 'A': cultural}
 def get_stats(save_data: Dict[str, Any], civ_ind: int) -> Dict[str, int]:
-    default_stats_history = {
-        "A": 0,
-        "W": 0,
-        "F": 0,
-        "S": 0,
-        "T": 0,
-        "N": 0,
-        "P": 0,
-        "G": 0,
-    }
+    default_stats_history = {"A": 0, "W": 0, "F": 0, "S": 0, "T": 0, "N": 0, "P": 0, "G": 0, "H": 0}
     stats = save_data["civilizations"][civ_ind].get("statsHistory", {"0": default_stats_history})
     last_key = list(stats.keys())[-1]
     last_stat = stats[last_key]
@@ -968,6 +960,7 @@ def get_stats(save_data: Dict[str, Any], civ_ind: int) -> Dict[str, int]:
         "population_strength": last_stat["N"],
         "production_strength": last_stat["P"],
         "commerce_strength": last_stat["G"],
+        "happiness": last_stat["H"],
     }
 
 
@@ -1003,6 +996,15 @@ def get_relation(save_data: Dict[str, Any], first_civ_ind: int, second_civ_name:
     return relation_score
 
 
+def is_known_civ(save_data: Dict[str, Any], first_civ_ind: int, second_civ_name: str) -> bool:
+    second_civ_name = fix_civ_name(second_civ_name)
+    diplomacy = save_data["civilizations"][first_civ_ind].get("diplomacy", {}).get(second_civ_name, {})
+    if len(diplomacy) < 1:
+        return False
+    else:
+        return True
+
+
 def get_diplomatic_status(save_data: Dict[str, Any], first_civ_ind: int, second_civ_name: str) -> str:
     second_civ_name = fix_civ_name(second_civ_name)
     # todo The default diplomacy {'otherCivName': 'Greece', 'diplomaticStatus': 'Peace', 'diplomaticModifiers': {'YearsOfPeace': 0.5}}
@@ -1030,15 +1032,59 @@ def get_decision_result(
         if intention in action_space.decision_space and "func" in action_space.decision_space[key]:
             try:
                 # todo diplomacy_flag True?
-                simulator_res_old = simulator.run(save_data, turns=20, diplomacy_flag=True, worker_auto=False)
+                simulated_turns = 20
+                simulator_res_old = simulator.run(
+                    save_data, turns=simulated_turns, diplomacy_flag=True, worker_auto=False
+                )
                 simulator_res_old_stat = get_stats(simulator_res_old, get_civ_index(simulator_res_old, req["civ_name"]))
+
+                # Get simulated params and function
                 param = [req[x] for x in action_space.decision_space[key]["param"]]
                 decision_gm_fn = action_space.decision_space[key]["func"]("yes")(*param)
                 save_data_new = decision_gm_fn(save_data)
                 simulator_res_new = simulator.run(save_data_new, turns=20, diplomacy_flag=True, worker_auto=False)
                 simulator_res_new_stat = get_stats(simulator_res_new, get_civ_index(simulator_res_new, req["civ_name"]))
-                # todo In addition to 'yes' and 'no'
-                if simulator_res_new_stat["civ_strength"] > simulator_res_old_stat["civ_strength"]:
+
+                log_d = {
+                    "key": key,
+                    "simulator_res_old_stat": simulator_res_old_stat,
+                    "simulator_res_new_stat": simulator_res_new_stat,
+                }
+                logger.debug(f"simulator in get_decision_result: {log_d}")
+
+                # Compute score
+                civ_strength_new = simulator_res_new_stat["civ_strength"]
+                civ_strength_old = simulator_res_old_stat["civ_strength"]
+                diff = civ_strength_new - civ_strength_old
+                mean = (civ_strength_new + civ_strength_old) / 2
+                if mean == 0:
+                    score = 0
+                else:
+                    score = diff / mean
+
+                # Simulation
+                if civ_strength_new - civ_strength_old > score:
+                    decision = "yes"
+                elif civ_strength_new - civ_strength_old >= 0:
+                    req["civ_strength_new"] = civ_strength_new
+                    req["civ_strength_old"] = civ_strength_old
+                    response = workflow_utils.run(
+                        generate_prompt(
+                            "simulated_decision",
+                            {
+                                **req,
+                                "civ_strength_new": civ_strength_new,
+                                "civ_strength_old": civ_strength_old,
+                                "turns": simulated_turns,
+                                "skill": intention,
+                            },
+                        )
+                    )
+                    decision = response["decision_result"].lower()
+                else:
+                    decision = "no"
+
+                if decision == "yes":
                     return (
                         "yes",
                         action_space.decision_space[intention]["decisions"]["yes"],
@@ -1057,12 +1103,13 @@ def get_decision_result(
                 )
     decisions = action_space.decision_space[intention]["decisions"]
     decision_result_raw = random.choice(list(decisions.keys()))
-    param = [req[x] for x in action_space.decision_space[key]["param"]]
-    if decision_result_raw in ("no", "nochange"):
+    if decision_result_raw in ("no", "nochange", "chat", "nonsense"):
         decision_gm_fn = None
     else:
+        param = [req[x] for x in action_space.decision_space[key]["param"]]
         decision_gm_fn = action_space.decision_space[key]["func"](decision_result_raw)(*param)
     # decision_gm_fn = None if decision_result_raw in ('no', 'nochange') else decision_gm_fn
+    logger.debug(f"random decision in get_decision_result: {decision_result_raw}")
     return decision_result_raw, decisions[decision_result_raw], decision_gm_fn
 
 
@@ -1080,6 +1127,10 @@ def get_decision_reason(
                 param = [req[x] for x in action_space.decision_reason_simulate_space[key]["param"]]
                 result = action_space.decision_reason_simulate_space[key]["func"](*param)(save_data)
                 # todo Reasons for Chinese translation
+                try:
+                    result = json.loads(result)
+                except Exception:
+                    pass
                 if result is not None and isinstance(result, dict):
                     # todo deal with reason score
                     # {'result': False, 'reason': {'consent': ['-195'], 'reject': ["We don't have a good relationship", "You're not as good as me", 'If you have a defensive pact with another civ then we would get drawn into their battles as well', 'I think I signed enough', '-195']}}
@@ -1087,8 +1138,12 @@ def get_decision_reason(
                     reject_reasons = result["reason"]["reject"]
                 else:
                     consent_reasons, reject_reasons = [], []
+                logger.debug(
+                    f"get_decision_reason {key}, {result},{type(result)}, {decision}, {consent_reasons}, {reject_reasons}"
+                )
                 # todo re-decision by reasons
                 reasons = consent_reasons if decision == "yes" else reject_reasons
+                reasons = [x for x in reasons if len(x) > 4]
                 if len(reasons) > 0:
                     return ",".join(reasons[:2])
                 else:
@@ -1096,7 +1151,7 @@ def get_decision_reason(
                     logger.debug("0 reason in get_decision_reason", key, result)
                     return ""
             except Exception as e:
-                logger.error(f"""error in get_decision_reason {key}, {req}, {e}""")
+                logger.exception(f"""error in get_decision_reason {key}, {req}, {e}""", exc_info=True)
     decision_reasons = action_space.decision_reason_space.get(intention + "_" + decision, [""])
     return ",".join([random.choice(decision_reasons)])
 

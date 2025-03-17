@@ -2,7 +2,7 @@ import os
 
 import yaml
 
-from civagent import logger
+# from civagent import logger
 
 config_path = os.environ.get("CIVAGENT_CONFIG_PATH")
 
@@ -14,4 +14,4 @@ def load_config() -> dict:
 
 
 config_data = load_config()
-logger.info(f"Loaded config from {config_path}: {config_data}")
+# logger.info(f"Loaded config from {config_path}: {config_data}")

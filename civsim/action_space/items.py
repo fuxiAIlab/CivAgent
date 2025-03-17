@@ -45,7 +45,7 @@ resource_space = {
 resource_space_list = list(resource_space.keys())
 
 item_detail_space = {
-    "Gold": {"Gold": "gold "},
+    "Gold": {"Gold": "gold"},
     # todo
     "City": {"Any ": "Any", "Capital": "the Capital", "Tokyo": "Tokyo", "Rome": "roma"},
     "Luxury": luxury_space,

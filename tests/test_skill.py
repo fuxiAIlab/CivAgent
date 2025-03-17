@@ -4,8 +4,7 @@ import os
 import yaml
 
 import civsim.simulator.simulator as simulator
-from civagent.skills import reply_declarefrienship, reply_trades_from_skills, use_skills
-from civsim import utils
+from civagent.skills import make_skill_decision
 
 default_skill_data = {
     "skills": {},
@@ -18,7 +17,9 @@ default_skill_data = {
 
 def test_skill():
     simulator.init_jvm()
-    path = os.path.join("..", "scripts", "reproductions", "Autosave-China-60")
+    path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "scripts", "reproductions", "Autosave-China-60"
+    )
     config_path = os.path.join("..", "tests", "test_config.yaml")
     with open(path, "r") as f:
         save_data = f.read()
@@ -27,9 +28,8 @@ def test_skill():
         config = yaml.safe_load(file)
     for key in config:
         config_data = config[key]
-        use_skills(save_data, "china", config_data, default_skill_data)
-        save_data_json = utils.trade_offer(save_data_json, "aztecs", "china", {"Ivory": 1}, {"Gold": 20})
-        save_data = json.dumps(save_data_json)
-        reply_trades_from_skills(save_data, "china", "aztecs", config_data)
-        reply_declarefrienship(save_data, "china", "aztecs", config_data)
-    assert True
+        config_data.update({"skill_usage_count": 5})
+        make_skill_decision(save_data_json, "china", config_data, default_skill_data)
+
+
+test_skill()

@@ -45,6 +45,9 @@ rome:
   simulation: true
   workflow: true
 use_ai: civagent
-use_skills_turns: 1
+use_skills_turns: 5
+skill_usage_count: 3
+simulated_gap_score: 5
 debug_mode: 0
 use_async_agent: 1
+skill_cooldown_turns: 25

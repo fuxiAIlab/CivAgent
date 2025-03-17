@@ -56,6 +56,7 @@ class Memory:
     def persist_user_data(user_data: Dict[str, Any], data_directory: str = chat_file_dir) -> None:
         if not os.path.exists(data_directory):
             os.makedirs(data_directory)
+        logger.debug(f"persist_user_data: {user_data}")
         for user_id, data in user_data.items():
             file_path = os.path.join(data_directory, f"{user_id}.txt")
             if os.path.exists(file_path):
@@ -95,6 +96,24 @@ class Memory:
             chats = [chat for chat in chats if filter_id in chat.fromCiv or filter_id in chat.toCiv]
         return chats
 
+    def read_last_n_lines_from_all_with_json_loads(req: Dict[str, Any], num: int = 10) -> List:
+        lines = req["dialogue_history"]
+        civ_name = req["civ_name"]
+        grouped_data = collections.defaultdict(list)
+
+        for data in lines:
+            from_civ = data["fromCiv"]
+            to_civ = data["toCiv"]
+            if civ_name in (from_civ, to_civ):
+                other_civ = from_civ if from_civ != civ_name else to_civ
+                grouped_data[other_civ].append({"from_civ": from_civ, "to_civ": to_civ, "content": data["notify"]})
+
+        return [{"civ_name": civ, "messages": messages[-num:]} for civ, messages in grouped_data.items()]
+
+    def get_chat_memory_from_all(self, filter_id: str = "") -> List[ChatMemory]:
+        chats = self.read_last_n_lines_from_all_with_json_loads(self.chat_file, self.game_id, num=10)
+        return chats
+
     @staticmethod
     def chat2dialogue(chat_history: List[ChatMemory], default_civ: str = "") -> List[dict]:
         tmp = []
@@ -121,7 +140,6 @@ class Memory:
             turns = int(game_info.get("turns", 0))
         history_events = [(int(x.get("turn", 0)), x.get("notifications", {})) for x in notifications_log]
         events = [(turns, notifications)] + history_events
-        logger.debug(f"get_event_memory at turns {turns}: {events}")
         tmp = []
         for turn, event_list in events:
             for event in event_list:

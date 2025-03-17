@@ -1,4 +1,5 @@
 Response = {
+    "unknown_civ": "What civilization are you from? I haven't seen you before.",
     "doublecheck": "Then I made a mistake. Let 's get back to the game.",
     "nonsense": "Let's do less of these useless conversations and focus more on the development of our country.",
     "seek_peace": "We're not at war...",

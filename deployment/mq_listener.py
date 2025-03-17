@@ -7,7 +7,7 @@ import aiohttp
 import ujson as json
 
 from civagent.config import config_data
-from civsim import logger, utils
+from civsim import logger
 from deployment.chatbot.chatmanager import ChatManager
 from deployment.redis_mq import RedisStreamMQ
 
@@ -44,7 +44,8 @@ async def main() -> None:
             gameid = msgs[0][7:]
             msg_d: dict = msgs[1][1]
             civ = msg_d.get("toBot", "")
-            gameid_civ = gameid + "_" + civ
+            event_type = msg_d.get("type", "")
+            gameid_civ = gameid + "_" + civ + "_" + event_type
             if gameid_civ in gameid_civ_lock and int(time.time()) - gameid_civ_lock[gameid_civ] > timeout_max:
                 del gameid_civ_lock[gameid_civ]
             elif len(gameid_civ_lock) >= 10:
@@ -63,12 +64,12 @@ async def main() -> None:
                 gameid2info = mq.get("gameid2info_" + gameid, {})
                 robot_names = gameid2info.get("civ_robots", [])
                 try:
-                    savefile_path = utils.get_savefile(gameid)
-                    save_data = utils.get_latest_savefile(savefile_path)
                     for civ_name in robot_names:
                         url = config_data["ai_server"]["url"] + "get_early_decision"
                         data = {
-                            "gameinfo": json.dumps(save_data),
+                            "gameid": gameid,
+                            # load savefile_path in receiver
+                            "gameinfo": "",
                             "civ1": civ_name,
                             "is_async": 1,
                             "turns": msg_d["turns"],
@@ -109,7 +110,9 @@ async def main() -> None:
                         del gameid_civ_lock[gameid_civ]
                         await asyncio.sleep(2)
                 except Exception as e:
-                    logger.error(f"error {e} {traceback.format_exc()}.")
+                    logger.error(f"mq_listener error in {msgs}: {e} {traceback.format_exc()}.")
+                    message_ids = msgs[1][0]
+                    mq.xdel(gameid, message_ids)
         await asyncio.sleep(2)
 
 

@@ -33,3 +33,4 @@ black==23.11.0
 mypy==1.7.1
 ruff==0.1.7
 commitizen==3.27.0
+chevron==0.14.0

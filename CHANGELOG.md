@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-rc.2] - 2025-03-17
+
+### Refactor
+- The bot now adopts a more anthropomorphic response style, supporting different personalities.
+- The workflow has been refactored to enable faster agent reflection, reducing processing time.
+- The Chevron template engine is now used, with prompt inputs standardized to English while supporting both Chinese and English outputs.
+- Several runtime errors have been fixed, improving overall stability.
+
 
 ## [0.1.0-rc.1] - 2024-10-22
 

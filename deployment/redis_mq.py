@@ -26,15 +26,19 @@ class RedisStreamMQ:
         self.redis.config_set("save", "300 10")
         self.redis.config_set("save", "60 10000")
 
-    def xadd(self, id_: str, message: Dict[str, Union[str, int]]) -> str:
+    def xadd(self, id_: str, message: Dict[str, Union[str, int, dict]]) -> str:
+        assert isinstance(message, dict), f"message is not a dict: {message}"
         stream_name = f"stream_{id_}"
-        message_id = self.redis.xadd(stream_name, message)
+        json_data = json.dumps(message)
+        # support nested dict
+        message_id = self.redis.xadd(stream_name, {"data": json_data})
         logger.debug(f"redis_mq xadd {stream_name} {message_id} {message}")
         return message_id
 
     def xread(self, id_: str, last_id: str = "$", block: int = 1, count: int = None) -> Any:
         stream_name = f"stream_{id_}"
         value = self.redis.xread({stream_name: last_id}, block=block, count=count)
+        # remove additional 'data' key added in xadd
         res = self.decode_if_bytes(value)
         return res[0] if len(res) == 1 else res
 
@@ -69,6 +73,8 @@ class RedisStreamMQ:
         if isinstance(value, bytes):
             return value.decode("utf-8")
         elif isinstance(value, dict):
+            if list(value.keys()) == [b"data"]:
+                return self.decode_if_bytes(json.loads(value[b"data"].decode("utf-8")))
             return {self.decode_if_bytes(k): self.decode_if_bytes(v) for k, v in value.items()}
         elif isinstance(value, list) or isinstance(value, tuple):
             return [self.decode_if_bytes(k) for k in value]

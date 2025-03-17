@@ -1,4 +1,3 @@
-import collections
 import random
 from copy import deepcopy
 from datetime import datetime
@@ -9,14 +8,15 @@ import ujson as json
 import civagent.utils.memory_utils
 import civagent.utils.utils
 from civagent import action_space as agent_action_space
-from civagent import default_from_name, default_gameid, logger
+from civagent import logger
 from civagent.action_space import intention_space
 from civagent.search import Search
-from civagent.utils import prompt_utils, workflow_utils
-from civagent.utils.prompt_utils import admin_reply_make, prompt_make, response_make
-from civagent.utils.utils import save2req
+from civagent.utils import workflow_utils
+from civagent.utils.prompt_utils import generate_prompt, response_make
 from civsim import action_space, utils
-from civsim.utils import fix_civ_name, get_civ_index, json_load_defaultdict
+from deployment.redis_mq import RedisStreamMQ
+
+mq = RedisStreamMQ()
 
 
 class CivAgent:
@@ -36,17 +36,19 @@ class CivAgent:
         self.civ_ind = utils.get_civ_index(game_info, civ_name)
         self.nickname = nickname
         self.character = character
-        self.strengths_info = utils.get_stats(game_info, self.civ_ind)
-        # self.culture_strength = strengths_info.get("culture_strength",0)
-        # self.tech_strength = strengths_info.get("tech_strength",0)
-        # self.army_strength = strengths_info.get("army_strength",0)
-        # self.navy_strength = strengths_info.get("navy_strength",0)
-        self.memory = civagent.utils.memory_utils.Memory(user_id, game_id)
+        self.strength_info = utils.get_stats(game_info, self.civ_ind)
+        # self.culture_strength = strength_info.get("culture_strength",0)
+        # self.tech_strength = strength_info.get("tech_strength",0)
+        # self.army_strength = strength_info.get("army_strength",0)
+        # self.navy_strength = strength_info.get("navy_strength",0)
+        # self.memory = civagent.utils.memory_utils.Memory(user_id, game_id)
+        self.memory = civagent.utils.memory_utils.Memory(user_id, game_info["gameId"])
         self.civ_names = utils.get_all_civs(game_info)
         self.oppo_agent: dict[str, CivAgent] = {}
         self.relations: dict = {}
         self.game_info: dict = game_info
         self.objective: list[str] = []
+        self.known_civs: set[str] = set()
         self.ally_civs: set[str] = set()
         self.enemy_civs: set[str] = set()
         self.war_civs: set[str] = set()
@@ -55,6 +57,7 @@ class CivAgent:
         self.potential_friend_civs: set[str] = set()
         self.short_term: list[str] = []
         self.last_plans: list[str] = []
+        self.trait: str = ""
 
     def init(self):
         for civ_name in self.civ_names:
@@ -75,17 +78,28 @@ class CivAgent:
                     "owe_favor": [],
                 }
         self.init_inferred_agent()
+        self.init_trait()
+
+    def init_trait(self) -> None:
+        """
+        Initialize the personality of each Agent randomly.
+        """
+
+        random_trait_key = random.choice(list(action_space.trait_space_list))
+        random_trait = action_space.trait_space[random_trait_key]
+        self.trait = {**random_trait, "type": random_trait_key}
 
     def update(self, game_info: Dict[str, Any]) -> None:
         self.war_civs = set()
+        self.known_civs = set()
         self.game_info = game_info
         self.civ_ind = utils.get_civ_index(game_info, self.civ_name)
-        self.strengths_info = utils.get_stats(game_info, self.civ_ind)
+        self.strength_info = utils.get_stats(game_info, self.civ_ind)
         for civ_name in self.civ_names:
             if civ_name != self.civ_name:
                 diplomatic_status = utils.get_diplomatic_status(self.game_info, self.civ_ind, civ_name)
                 relation = utils.get_relation(self.game_info, self.civ_ind, civ_name)
-                # todo
+                # TODO
                 expected_relation = utils.get_relation(self.game_info, self.civ_ind, civ_name)
                 proximity = utils.get_proximity(self.game_info, self.civ_ind, civ_name)
                 self.relations[f"{self.civ_name}#{civ_name}"]["closeness"] = relation
@@ -95,6 +109,8 @@ class CivAgent:
                 self.relations[f"{self.civ_name}#{civ_name}"]["army_proximity"] = proximity
                 if diplomatic_status.lower() == "war":
                     self.war_civs.add(civ_name)
+                if utils.is_known_civ(self.game_info, self.civ_ind, civ_name):
+                    self.known_civs.add(civ_name)
                 if relation in (
                     action_space.RelationSpace.ALLY.value,
                     action_space.RelationSpace.FRIEND.value,
@@ -115,8 +131,7 @@ class CivAgent:
                     action_space.RelationSpace.UNFORGIVABLE.value,
                 ):
                     self.potential_enemy_civs.add(civ_name)
-                # todo
-                # self.relations[f"{self.civ_name}#{civ_name}"]["closeness"] = "Unfamiliar"
+
         self.plan_diplomacy_relation()
         self.reflection_objective()
 
@@ -170,67 +185,45 @@ class CivAgent:
 
     @staticmethod
     def bargain(req: Dict[str, Any], game_info: Dict[str, Any]) -> Tuple[Dict[str, Any], str]:
-        if "bottom_line" not in req:
-            border_info = CivAgent.get_resource_border(req, game_info)
-            req = {**req, **border_info}
-            try:
-                bottom_line = CivAgent.get_trade_bottom_line(req, game_info, req["bargain_role"])
-            except Exception as e:
-                logger.exception(f"error {e} in bargain:get_trade_bottom_line.", exc_info=True)
-                bottom_line = {"bottom_line": [{"category": "Gold", "item": "Gold", "amount": 120}]}
-            logger.debug(f"debug in bargain bottom_line:{bottom_line}")
-            req = {
-                **req,
-                **bottom_line,
-                "bottom_line_str": str(bottom_line["bottom_line"][0].get("amount", 0)),
-            }
-        else:
-            bottom_line = req["bottom_line"]
-            req = {
-                **req,
-                **bottom_line,
-                "bottom_line_str": str(bottom_line["bottom_line"][0].get("amount", 0)),
-            }
+        logger.info(f"bargain context: {req}")
+        bargain_role, civ_name = req["bargain_role"], req["civ_name"]
+
         if req["bargain_role"] == "buyer":
-            prompt_str, prompt_config = prompt_utils.prompt_make("bargain_buyer", req)
+            # When bargaining, as a buyer
+            border_info = CivAgent.get_resource_border(req, game_info)
+            logger.debug(f"border_info in bargain for {bargain_role} {civ_name}: {border_info}")
+            req = {**req, **border_info}
+            response = workflow_utils.run(generate_prompt("bargain_buyer"))
         else:
-            prompt_str, prompt_config = prompt_utils.prompt_make("bargain_seller", req)
-        response, _, actual_prompt = workflow_utils.run_workflows(
-            {"prompt": prompt_str, "llm_config": prompt_config}, is_reply=True
-        )
+            # When bargaining, as a seller
+            if "bottom_line" not in req:
+                bottom_line = CivAgent.get_trade_bottom_line(req, game_info, bargain_role)
+                logger.info(f"bottom_line in bargain for {bargain_role} {civ_name}: {bottom_line}")
+            else:
+                bottom_line = req["bottom_line"]
+            req = {
+                **req,
+                **bottom_line,
+                "bottom_line_str": str(bottom_line["bottom_line"][0].get("amount", 0)),
+            }
+            response = workflow_utils.run(generate_prompt("bargin_seller"))
+
+        logger.info(f"bargain response: {response}")
         assert isinstance(response, dict)
         return {
-            "response": response["Response"],
-            "bottom_line": bottom_line,
+            "response": response["bargain_response"],
+            # "bottom_line": bottom_line,
             "decision_result": "bargain",
-            "decision_reason": response.get("Reasoning", ""),
-            "bargain_result": response["Decision"],
-        }, actual_prompt
-
-    # propose_new = '''
-    #     You are currently a player in the game "Civilization 5," representing a civilization. You are currently representing the civilization {civ_name}. Presently, you need to propose a trade to purchase resources from another civilization, {opp_civ_name}. Your last proposal to {opp_civ_name} for a trade was {last_proposal}. After some negotiation, you were unable to reach an agreement. Your negotiation history is as follows: {chat_history}. It is evident that your trade offer was not advantageous to the other party. Since the other party is unable to meet your purchasing needs, you may consider proposing a new trade by reducing the quantity of resources you wish to purchase. You should not exceed this maximum cost in your proposal: {bottom_buyer}.
-    #
-    #     Please generate a response to {opp_civ_name} based on the above requirements as {civ_name}.
-    #     You must reply in the following format:
-    #     Response Format:
-    #     Reasoning: Provide a brief rationale for your new proposal to the other party based on the given information.
-    #     Response: Your new proposal to {opp_civ_name}.
-    # '''
-    # def generate_new_proposal(self, req, model):
-    #     propose_req = {"civ_name": self.civ_name, "opp_civ_name": req['speaker_persona']['civ_name'],
-    #                    "last_proposal": req['utterance'], 'chat_history': req['dialogue_history'],
-    #                    'bottom_buyer': self.bottom_line}
-    #     propose_prompt_str = propose_new.format(**propose_req)
-    #
-    #     response, _, actual_prompt = workflow_utils.run_workflows(
-    #         {"prompt": propose_prompt_str, **decision_prompt_config}, model, force_json=False
-    #     )
-    #     content = re.search(r'Response:(.*)', response).group(1).lstrip(' ').rstrip('.')
-    #     new_proposal = content
-    #     return new_proposal
+            "bargain_reason": response.get("bargain_reason", ""),
+            "bargain_result": response["bargain_result"],
+        }
 
     @staticmethod
     def get_resource_border(req: Dict[str, Any], game_info: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Get the highest price acceptable to the buyer
+        """
+
         civ_name = req["civ_name"]
         civ_resource = utils.get_all_resources(game_info)
         my_resource = civ_resource[civ_name]
@@ -243,14 +236,22 @@ class CivAgent:
     def get_trade_bottom_line(
         req: Dict[str, Any], game_info: Dict[str, Any], bargain_role: str = "buyer"
     ) -> Dict[str, Any]:
+        """
+        Get the lowest price acceptable to the seller
+        """
+
         civ_name = req["civ_name"]
         response = {"intention": "propose_trade", "detail": req["identify_result"]}
+        # AI will only change the amount of the ''offer'' item (which the player wants to pay)
         max_border = deepcopy(response["detail"]["offer"])
         opp_border = deepcopy(response["detail"]["offer"])
         for i in range(len(response["detail"]["offer"])):
-            item_category = response["detail"]["offer"][i]["category"]
-            max_border[i]["amount"] = req["border_info"][item_category]
-            opp_border[i]["amount"] = req["border_info"][item_category]
+            # {'category': 'Luxury', 'item': 'Gems', 'amount': 'Any'}
+            item_name = response["detail"]["offer"][i]["item"]
+            max_border[i]["amount"] = req["border_info"].get(item_name, 0)
+            opp_border[i]["amount"] = req["border_info"].get(item_name, 0)
+            if max_border[i]["amount"] <= 0:
+                raise Exception(f"No enough {item_name} for {civ_name}")
         search_instance = Search(
             response,
             req["receiver_persona"]["civ_name"],
@@ -268,23 +269,27 @@ class CivAgent:
     def extract_trades(
         intention: str, req: Dict[str, Any]
     ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any], str]:
+        """
+        Identify the trading entities in the dialogue and their quantities.
+        """
+
         req["item_category_space"] = action_space.item_category_space
         req["item_detail_space"] = action_space.item_detail_space
         req["intention_space"] = agent_action_space.intention_space
-        prompt_str, prompt_config = prompt_utils.prompt_make(intention + "_identify", req)
-        identify_result, _, actual_prompt = workflow_utils.run_workflows(
-            {"prompt": prompt_str, "llm_config": prompt_config}, force_json=True
-        )
+
+        identify_result = workflow_utils.run(generate_prompt(intention + "_identify", req))
+
         civ1_resource_dict, civ2_resource_dict = {}, {}
         logger.debug(f"debug in extract_trades: {identify_result}")
-        # todo processing Any amount\item
+
+        # TODO: processing Any amount\item
         for item in identify_result.get("offer", {}):
             civ1_resource_dict[item["item"]] = item["amount"] if "Any" != item["amount"] else 1
         req["civ1_resource_dict"] = civ1_resource_dict
         for item in identify_result.get("demand", {}):
             civ2_resource_dict[item["item"]] = item["amount"] if "Any" != item["amount"] else 1
         req["civ2_resource_dict"] = civ2_resource_dict
-        return civ1_resource_dict, civ2_resource_dict, identify_result, actual_prompt
+        return civ1_resource_dict, civ2_resource_dict, identify_result
 
     @staticmethod
     def get_last_dialogue(req: Dict[str, Any]) -> Dict[str, Any]:
@@ -294,7 +299,9 @@ class CivAgent:
         last_dialogue_receiver = [
             x for x in req.get("dialogue_history", [{}]) if x["fromCiv"] == req["receiver_persona"]["civ_name"].lower()
         ]
+        logger.info(f"last_dialogue_receiver: {last_dialogue_receiver}")
         last_dialogue_receiver = last_dialogue_receiver[-1] if len(last_dialogue_receiver) > 0 else {}
+
         if "debugInfo" in last_dialogue_receiver:
             try:
                 last_dialogue_receiver["debugInfo"] = json.loads(last_dialogue_receiver["debugInfo"])
@@ -319,7 +326,6 @@ class CivAgent:
             req["identify_result"] = last_dialogue["identify_result"]
             req["civ1_resource_dict"] = last_dialogue["civ1_resource_dict"]
             req["civ2_resource_dict"] = last_dialogue["civ2_resource_dict"]
-            actual_prompt = ""
             # last_dialogue Contains the previous round of transactions
             intention_result = {
                 **last_dialogue,
@@ -332,7 +338,6 @@ class CivAgent:
             req["civ1_resource_dict"] = last_dialogue["civ1_resource_dict"]
             req["civ2_resource_dict"] = last_dialogue["civ2_resource_dict"]
             bargain_cnt = last_dialogue.get("bargain_cnt", 0)
-            actual_prompt = ""
             intention_result = {
                 **last_dialogue,
                 "intention": "trade_bargain",
@@ -341,22 +346,16 @@ class CivAgent:
             }
         else:
             # The other side put forward a new proposal
-            actual_prompt = ""
             try:
-                (
-                    civ1_resource_dict,
-                    civ2_resource_dict,
-                    identify_result,
-                    actual_prompt,
-                ) = CivAgent.extract_trades("propose_trade", req)
+                civ1_resource_dict, civ2_resource_dict, identify_result = CivAgent.extract_trades("propose_trade", req)
             except Exception as e:
-                logger.exception(f"error in bargain:extract_trades {e}:", exc_info=True)
+                logger.exception(f"error in bargain: extract_trades {e}:", exc_info=True)
                 return {
                     **last_dialogue,
                     "intention": "trade_bargain",
                     "response": "Your transaction is too complicated. Let's go to the transaction screen.",
                     "bargain_result": "no",
-                }, actual_prompt
+                }
             req["identify_result"] = identify_result
             req["civ1_resource_dict"] = civ1_resource_dict
             req["civ2_resource_dict"] = civ2_resource_dict
@@ -370,37 +369,96 @@ class CivAgent:
                 "civ1_resource_dict": civ1_resource_dict,
                 "civ2_resource_dict": civ2_resource_dict,
             }
-        return intention_result, actual_prompt
+        return intention_result
+
+    @staticmethod
+    def intention_understand(req, only_chat=False):
+        """
+        text->
+        if There is the last bargain tag identification content + identification is successful -> response
+        if There is no doublecheck tag intent recognition->if you intend to reply directly; if strong intent plus doublecheck tag if identifies content for trade； -> Don't call the response function
+        if There is the last doublecheck tag check identification -> if trade goes bargain in response； else decision
+        """
+        req["item_category_space"] = action_space.item_category_space
+        req["item_detail_space"] = action_space.item_detail_space
+        req["intention_space"] = agent_action_space.intention_space
+
+        last_dialogue = CivAgent.get_last_dialogue(req)["debugInfo"]
+        req["last_dialogue"] = last_dialogue
+
+        if not only_chat and last_dialogue.get("bargain_result", "") == "continue":
+            intention = "bargain"
+        elif not only_chat and last_dialogue.get("doublecheck", "") == "wait":
+            intention = "doublecheck"
+        else:
+            intention = "intention_understand"
+
+        logger.info(f"intention: {intention}, last_dialogue: {last_dialogue}")
+
+        if intention == "bargain":
+            # The judgment of whether the other party agrees or not
+            raw_intention = workflow_utils.run(generate_prompt("doublecheck", req))
+            # Further bargain based on the judgment
+            intention_result = CivAgent.bargain_intention(raw_intention, last_dialogue, req)
+            return intention_result
+
+        elif intention == "doublecheck":
+            raw_intention = workflow_utils.run(generate_prompt("doublecheck", req))
+            logger.info(f"doublecheck result of {req['utterance']} is {raw_intention}")
+            if raw_intention.get("doublecheck", "") == "yes":
+                raw_intention = {**last_dialogue, **raw_intention}
+                return raw_intention
+            # TODO: raw_intention.get('doublecheck', '') == 'continue'
+            else:
+                raw_intention["response"] = response_make("doublecheck", req)
+                raw_intention = {**last_dialogue, **raw_intention}
+                return raw_intention
+
+        else:  # if intention == 'intention_understand':
+            intention_task_reply = workflow_utils.run(generate_prompt("intention_understand", req))
+            logger.info(f"intention_task_reply: {intention_task_reply}")
+            intention_result = CivAgent.intention_correct(intention_task_reply, req, only_chat)
+            logger.info(f"intention_result: {intention_result}")
+
+            return intention_result
 
     @staticmethod
     def intention_correct(intention_task_reply, req, only_chat):
+        """
+        Process the intention results differently based on the different degrees of intention.
+        """
+
         assert isinstance(intention_task_reply, dict), type(intention_task_reply)
-        raw_intention, intention_degree, intention, response = "", "", "", ""
-        last_intention = req.get("last_dialogue", {}).get("raw_intention", "")
-        last_intention_degree = req.get("last_dialogue", {}).get("intention_degree", "")
-        last_dialogue_ts = req.get("last_dialogue", {}).get("addTime", "")
-        intention_str = intention_task_reply.get("intention", "chat")
-        for k in intention_space:
-            if k in intention_str:
-                raw_intention = k
-        raw_intention = "nonsense" if len(raw_intention) < 1 else raw_intention
-        # pattern = r"degree.{0,4}weak"
+
+        last_dialogue = req.get("last_dialogue", {})
+        logger.info(f"last dialogue: {last_dialogue}")
+
+        last_intention = last_dialogue.get("raw_intention", "")
+        last_intention_degree = last_dialogue.get("intention_degree", "")
+        last_dialogue_ts = last_dialogue.get("addTime", "")
+
+        raw_intention = intention_task_reply.get("intention", "chat")
+
+        if raw_intention not in intention_space:
+            raw_intention = "nonsense"
+
         intention_degree = intention_task_reply.get("degree", "weak")
         if raw_intention in ("open_border", "nonsense"):
             intention = raw_intention
             intention_degree = "strong"
         elif intention_degree != "strong":
-            # weak intention_degree -> free_chat
+            # Weak intention_degree -> free_chat
             intention = "chat"
         elif (
             raw_intention == last_intention
             and last_intention_degree == "strong"
             and utils.time_diff_in_minutes(last_dialogue_ts) <= 1
         ):
-            # if repeated intention in short time
+            # If repeated intention in short time
             intention = "chat"
         else:
             intention = raw_intention
+
         response = intention_task_reply.get("reply", "")
         intention_result = {
             "raw_intention": raw_intention,
@@ -412,6 +470,11 @@ class CivAgent:
         if intention == "nonsense":
             intention_result["response"] = response_make("nonsense", req)
 
+        if not req.get("is_known_civ", False):
+            intention_result["response"] = response_make("unknown_civ", req)
+            intention_result["intention"] = "chat"
+            return intention_result
+
         if only_chat:
             return intention_result
 
@@ -420,7 +483,6 @@ class CivAgent:
             intention_result["intention"] = "chat"
             return intention_result
 
-        # todo decision of common_enemy
         if intention_degree == "strong" and intention in ("common_enemy",):
             intention_result["response"] += response_make("common_enemy", req)
             intention_result["intention"] = "chat"
@@ -430,8 +492,9 @@ class CivAgent:
             "ask_for_object",
             "propose_trade",
         ):
+            # Identify the entities and their quantities in the other party's intention
             try:
-                civ1_resource_dict, civ2_resource_dict, identify_result, _ = CivAgent.extract_trades(intention, req)
+                civ1_resource_dict, civ2_resource_dict, identify_result = CivAgent.extract_trades(intention, req)
             except Exception as e:
                 logger.exception(f"error in bargain:extract_trades {e}:", exc_info=True)
                 return {
@@ -440,7 +503,6 @@ class CivAgent:
                     "response": response_make("propose_trade", req),
                 }
             if len(civ2_resource_dict) + len(civ1_resource_dict) == 0:
-                # ask_for_object nothing
                 intention_result["intention"] = "chat"
                 return intention_result
             else:
@@ -455,80 +517,18 @@ class CivAgent:
                 }
 
         if intention_degree == "strong" and intention not in ("nonsense", "chat"):
-            # use doublecheck as response
-            doublecheck = prompt_utils.intention_doublecheck(intention_result, req)
+            # Use doublecheck as response
             intention_result = {
                 **intention_result,
-                **doublecheck,
                 "doublecheck": "wait",
             }
-            prompt, prompt_config = prompt_utils.prompt_make(
-                "doublecheck_rewrite", context_dict={**req, **intention_result}
+            response = workflow_utils.run(
+                generate_prompt("doublecheck_rewrite", {**req, **intention_result}), force_json=False
             )
-            response, _, _ = workflow_utils.run_workflows(
-                req={"llm_config": prompt_config, "prompt": prompt},
-                model=req.get("llm_model", ""),
-                force_json=False,
-                is_reply=True,
-                workflow=False,
-            )
-            intention_result["response"] = response
+            logger.info(f"doublecheck_rewrite: {response['reply']}")
+            intention_result["response"] = response["reply"]
+
         return intention_result
-
-    @staticmethod
-    def intention_understanding(req, only_chat=False):
-        """
-        text->
-        if There is the last bargain tag identification content + identification is successful -> response
-        if There is no doublecheck tag intent recognition->if you intend to reply directly; if strong intent plus doublecheck tag if identifies content for trade； -> Don't call the response function
-        if There is the last doublecheck tag check identification -> if trade goes bargain in response； else decision
-        """
-        req["item_category_space"] = action_space.item_category_space
-        req["item_detail_space"] = action_space.item_detail_space
-        req["intention_space"] = agent_action_space.intention_space
-        last_dialogue = CivAgent.get_last_dialogue(req)["debugInfo"]
-        req["last_dialogue"] = last_dialogue
-        if not only_chat and last_dialogue.get("bargain_result", "") == "continue":
-            intention = "bargain"
-        elif not only_chat and last_dialogue.get("doublecheck", "") == "wait":
-            intention = "doublecheck"
-        else:
-            intention = "intention_understanding"
-        logger.info(f"intention_understanding: {intention}, last_dialogue: {last_dialogue}")
-        # doublecheck
-        if intention == "bargain":
-            prompt_str, prompt_config = prompt_utils.prompt_make("doublecheck", req)
-            raw_intention, response, actual_prompt = workflow_utils.run_workflows(
-                {"prompt": prompt_str, "llm_config": prompt_config}
-            )
-            # The judgment of whether the other party agrees or not
-            intention_result, actual_prompt = CivAgent.bargain_intention(raw_intention, last_dialogue, req)
-            return intention_result, actual_prompt
-
-        elif intention == "doublecheck":
-            prompt_str, prompt_config = prompt_utils.prompt_make("doublecheck", req)
-            raw_intention, response, actual_prompt = workflow_utils.run_workflows(
-                {"prompt": prompt_str, "llm_config": prompt_config}
-            )
-            logger.debug(f"doublecheck result of {req['utterance']} is {raw_intention}")
-            if raw_intention.get("doublecheck", "") == "yes":
-                raw_intention = {**last_dialogue, **raw_intention}
-                return raw_intention, actual_prompt
-            # todo raw_intention.get('doublecheck', '') == 'continue'
-            else:
-                raw_intention["response"] = response_make("doublecheck", req)
-                raw_intention = {**last_dialogue, **raw_intention}
-                return raw_intention, actual_prompt
-        # if type == 'intention_understanding':
-        else:
-            # intention_understanding
-            prompt_str, prompt_config = prompt_utils.prompt_make("intention_understanding", req)
-            raw_intention, response, actual_prompt = workflow_utils.run_workflows(
-                {"prompt": prompt_str, "llm_config": prompt_config}
-            )
-            intention_result = CivAgent.intention_correct(raw_intention, req, only_chat)
-
-            return intention_result, actual_prompt
 
     @staticmethod
     def response(req, intention_result, save_data, use_random=False):
@@ -539,12 +539,11 @@ class CivAgent:
             and intention_result.get("intention", "") == "propose_trade"
             or (intention_result.get("intention", "") == "trade_bargain")
         ):
-            # bargain
-            result, actual_prompt, decision_gm_fn = CivAgent.response_bargain(req, intention_result, save_data)
-            return result, actual_prompt, decision_gm_fn
-
+            # Bargain
+            result, decision_gm_fn = CivAgent.response_bargain(req, intention_result, save_data)
+            return result, decision_gm_fn
         elif intention_result.get("doublecheck", "") == "yes":
-            # prev Intention
+            # Get decision_result and decision_reason
             intention = intention_result["intention"]
             random.seed(req.get("round", 0))
             decision_raw, decision, decision_gm_fn = utils.get_decision_result(
@@ -552,177 +551,148 @@ class CivAgent:
             )
             req["decision_result_raw"] = decision_raw
             req["decision_result"] = decision
-            # req['decision_reason'] = 'My military strength is much greater than yours.'
             req["decision_reason"] = utils.get_decision_reason(
                 decision_raw, intention, req, save_data, use_random=use_random
             )
-            # response
-            prompt_str, prompt_config = prompt_utils.prompt_make(intention, req)
-            response, _, actual_prompt = workflow_utils.run_workflows(
-                {
-                    "prompt": prompt_str,
-                    "llm_config": prompt_config,
-                },
-                force_json=False,
-            )
-            assert isinstance(response, str)
-            response = utils.extract_quotes_text(response)
-            if decision_raw == "yes":
-                response = response + admin_reply_make("agree_trade", {})
+            # Rewrite response based on decision_result and decision_reason
+            response = workflow_utils.run(generate_prompt("response_rewrite", {**req, **{"skill": intention}}))
             result = {
                 **intention_result,
-                "response": response,
+                "response": response["reply"],
                 "decision_result": req["decision_result"],
                 "decision_reason": req["decision_reason"],
             }
-            return result, actual_prompt, decision_gm_fn
+            return result, decision_gm_fn
         else:
-            # reply directly
+            # Reply directly
             if intention_result.get("intention", "") == "nonsense":
-                return {**intention_result, "decision_result": "close"}, "", None
+                return {**intention_result, "decision_result": "close"}, None
             else:
-                return {**intention_result, "decision_result": "continue"}, "", None
+                return {**intention_result, "decision_result": "continue"}, None
 
     @staticmethod
     def response_bargain(req, intention_result, save_data):
+        """
+        Reply to the bargain intention
+        """
+
         req["bargain_role"] = "seller"
-        result = ""
+        result = intention_result
         decision_gm_fn = None
         if intention_result.get("bargain_result", "") == "yes":
-            result, actual_prompt = intention_result, ""
             result["response"] = response_make("bargain_result_yes", req)
             key = "propose_trade"
             param = [req[x] for x in action_space.decision_space[key]["param"]]
-            # todo gm_fn Support for composition
+            # TODO gm_fn Support for composition
             decision_gm_fn = action_space.decision_space[key]["func"]("yes")(*param)
         elif intention_result.get("bargain_result", "") == "no":
-            result, actual_prompt = intention_result, ""
             result["response"] = response_make("bargain_result_no", req)
             decision_gm_fn = None
         else:
+            # Enter bargain workflow
             req = {"bargain_cnt": 0, **req, **intention_result}
             try:
-                response, actual_prompt = CivAgent.bargain(req, save_data)
+                response = CivAgent.bargain(req, save_data)
+                logger.info(f"bargain response: {response}")
             except Exception as e:
                 logger.exception(f"error in bargain {e}: ", exc_info=True)
-                actual_prompt = ""
                 response = {
                     "response": response_make("propose_trade", req),
                     "bargain_result": "no",
                 }
-                result = {**intention_result, **response}
-                return result, actual_prompt, decision_gm_fn
-
+                result.update(response)
+                return result, decision_gm_fn
             if response.get("bargain_result", "") == "yes":
-                result, actual_prompt = intention_result, ""
                 result["response"] = response_make("bargain_success", req)
                 key = "propose_trade"
-                # info = {**req, **intention_result}
                 param = [req[x] for x in action_space.decision_space[key]["param"]]
-                # todo gm_fn Support for composition
+                # TODO: gm_fn Support for composition
                 decision_gm_fn = action_space.decision_space[key]["func"]("yes")(*param)
             elif response.get("bargain_result", "") == "no":
-                response["response"] = response_make("bargain_fail", req)
+                result["response"] = response_make("bargain_fail", req)
             else:
                 bargain_cnt = intention_result.get("bargain_cnt", 0)
-                result = {
-                    **intention_result,
-                    **response,
-                    "bargain_cnt": bargain_cnt + 1,
-                }
-        return result, actual_prompt, decision_gm_fn
+                result.update(
+                    {
+                        **response,
+                        "bargain_cnt": bargain_cnt + 1,
+                    }
+                )
+        return result, decision_gm_fn
 
-    @staticmethod
-    def reply_trade_of_skills(gameinfo, civ1_name, civ2_name, config):
-        gameinfo = json_load_defaultdict(gameinfo)
-        ind_1 = get_civ_index(gameinfo, civ1_name)
-        civ2_name = fix_civ_name(civ2_name)
-        civ1_name = fix_civ_name(civ1_name)
-        turn = gameinfo["turns"]
-        if isinstance(turn, collections.defaultdict):
-            turn = 1
-        else:
-            turn = int(turn)
-        their_offers = {}
-        our_offers = {}
-        # standard_dicts = [
-        #     json.loads(json.dumps(item, default=lambda x: dict(x)))
-        #     for item in gameinfo['civilizations'][ind_1]['tradeRequests']
-        # ]
-        standard_dicts = gameinfo["civilizations"][ind_1]["tradeRequests"]
-        if "theirOffers" in standard_dicts[0]["trade"]:
-            their_offers = {"theirOffers": standard_dicts[0]["trade"]["theirOffers"][0]}
-        if "ourOffers" in standard_dicts[0]["trade"]:
-            our_offers = {"ourOffers": standard_dicts[0]["trade"]["ourOffers"][0]}
+    # @staticmethod
+    # def reply_trade_of_skills(gameinfo, civ1_name, civ2_name, config):
+    #     gameinfo = json_load_defaultdict(gameinfo)
+    #     ind_1 = get_civ_index(gameinfo, civ1_name)
+    #     civ2_name = fix_civ_name(civ2_name)
+    #     civ1_name = fix_civ_name(civ1_name)
+    #     turn = gameinfo["turns"]
+    #     if isinstance(turn, collections.defaultdict):
+    #         turn = 1
+    #     else:
+    #         turn = int(turn)
+    #     their_offers = {}
+    #     our_offers = {}
+    #     # standard_dicts = [
+    #     #     json.loads(json.dumps(item, default=lambda x: dict(x)))
+    #     #     for item in gameinfo['civilizations'][ind_1]['tradeRequests']
+    #     # ]
+    #     standard_dicts = gameinfo["civilizations"][ind_1]["tradeRequests"]
+    #     if "theirOffers" in standard_dicts[0]["trade"]:
+    #         their_offers = {"theirOffers": standard_dicts[0]["trade"]["theirOffers"][0]}
+    #     if "ourOffers" in standard_dicts[0]["trade"]:
+    #         our_offers = {"ourOffers": standard_dicts[0]["trade"]["ourOffers"][0]}
 
-        if our_offers["ourOffers"].get("type", "") == "WarDeclaration":
-            trade = "Invite us to attack {ourOffers[name]}"
-        elif their_offers["theirOffers"].get("type", "") == "Gold_Per_Turn":
-            trade = "Exchange {theirOffers[amount]} gold for our {ourOffers[name]} each round"
-        else:
-            trade = "Use {theirOffers[name]} in exchange for our {ourOffers[name]}"
-        robot_name = civ1_name.lower()
-        speaker = civ2_name.lower()
-        agent = CivAgent(default_from_name, robot_name, "", "", gameinfo, default_gameid)
-        agent.init()
-        agent.update(gameinfo)
+    #     if our_offers["ourOffers"].get("type", "") == "WarDeclaration":
+    #         trade = "Invite us to attack {ourOffers[name]}"
+    #     elif their_offers["theirOffers"].get("type", "") == "Gold_Per_Turn":
+    #         trade = "Exchange {theirOffers[amount]} gold for our {ourOffers[name]} each round"
+    #     else:
+    #         trade = "Use {theirOffers[name]} in exchange for our {ourOffers[name]}"
+    #     robot_name = civ1_name.lower()
+    #     speaker = civ2_name.lower()
+    #     agent = CivAgent(default_from_name, robot_name, "", "", gameinfo, default_gameid)
+    #     agent.init()
+    #     agent.update(gameinfo)
 
-        req = save2req(
-            gameinfo,
-            agent,
-            text="",
-            speaker_civ_name=speaker,
-            receiver_civ_name=robot_name,
-        )
-        req["short_term"] = agent.short_term
-        proposal = {
-            "param": {"civ_name": speaker},
-            "skill_name": trade.format(**their_offers, **our_offers),
-        }
-        model = config[robot_name]["model"] if req.get("llm_model", "") == "" else req["llm_model"]
-        to_civ_workflow = config[robot_name]["workflow"]
-        if to_civ_workflow == "True" or to_civ_workflow is True or to_civ_workflow == "true":
-            prompt_decision, llm_config = prompt_make("agent_analyze", context_dict={**req, **proposal})
-        else:
-            prompt_decision, llm_config = prompt_make("agent_reply_noworkflow", context_dict={**req, **proposal})
-        req["llm_config"] = llm_config
-        decision, _, _ = workflow_utils.run_workflows(
-            req={"llm_config": llm_config, "prompt": prompt_decision},
-            model=model,
-            force_json=False,
-            is_reply=True,
-            workflow=to_civ_workflow,
-        )
-        if isinstance(decision, dict):
-            decision = decision["decision"]
-        if decision == "yes":
-            logger.debug(
-                f"""On the {turn} turn, {civ1_name} agrees to {civ2_name}'s """
-                + f"""{trade.format(**their_offers, **our_offers)} request --success"""
-            )
-        else:
-            logger.debug(
-                f"""On the {turn} turn, {civ1_name} denies {civ2_name}'s  """
-                + f"""{trade.format(**their_offers, **our_offers)} request --fail"""
-            )
-        pair_dict = {"result": decision}
-        json_data = json.dumps(pair_dict)
-        return json_data
-
-    @staticmethod
-    def get_inner_state(save_data, civ_ind):
-        inner_state = save_data["civilizations"][civ_ind].get("inner_state", {})
-        return inner_state
-
-    def set_inner_state(self, save_data):
-        civ_ind = self.civ_ind
-        data = {
-            "objective": self.objective,
-            "enemy_civs": list(self.enemy_civs),
-            "friend_civs": list(self.friend_civs),
-            "potential_enemy_civs": list(self.potential_enemy_civs),
-            "potential_friend_civs": list(self.potential_friend_civs),
-            "last_plans": self.last_plans,
-        }
-        save_data["civilizations"][civ_ind]["inner_state"] = data
-        return save_data
+    #     req = save2req(
+    #         gameinfo,
+    #         agent,
+    #         text="",
+    #         speaker_civ_name=speaker,
+    #         receiver_civ_name=robot_name,
+    #     )
+    #     req["short_term"] = agent.short_term
+    #     proposal = {
+    #         "param": {"civ_name": speaker},
+    #         "skill_name": trade.format(**their_offers, **our_offers),
+    #     }
+    #     model = config[robot_name]["model"] if req.get("llm_model", "") == "" else req["llm_model"]
+    #     to_civ_workflow = config[robot_name]["workflow"]
+    #     if to_civ_workflow == "True" or to_civ_workflow is True or to_civ_workflow == "true":
+    #         prompt_decision, llm_config = prompt_make("agent_analyze", context_dict={**req, **proposal})
+    #     else:
+    #         prompt_decision, llm_config = prompt_make("agent_reply_noworkflow", context_dict={**req, **proposal})
+    #     req["llm_config"] = llm_config
+    #     decision, _, _ = workflow_utils.run_workflows(
+    #         req={"llm_config": llm_config, "prompt": prompt_decision},
+    #         model=model,
+    #         force_json=False,
+    #         is_reply=True,
+    #         workflow=to_civ_workflow,
+    #     )
+    #     if isinstance(decision, dict):
+    #         decision = decision["decision"]
+    #     if decision == "yes":
+    #         logger.info(
+    #             f"""On the {turn} turn, {civ1_name} agrees to {civ2_name}'s """
+    #             + f"""{trade.format(**their_offers, **our_offers)} request --success"""
+    #         )
+    #     else:
+    #         logger.info(
+    #             f"""On the {turn} turn, {civ1_name} denies {civ2_name}'s  """
+    #             + f"""{trade.format(**their_offers, **our_offers)} request --fail"""
+    #         )
+    #     pair_dict = {"result": decision}
+    #     json_data = json.dumps(pair_dict)
+    #     return json_data

@@ -9,7 +9,9 @@ default_gameid = "aa9092fe-61fb-4554-8102-d77d5c689851"
 
 
 def test_civagent():
-    path = os.path.join("..", "scripts", "reproductions", "Autosave-China-60")
+    path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "scripts", "reproductions", "Autosave-China-60"
+    )
     with open(path, "r") as f:
         save_data = f.read()
     gameinfo = json_load_defaultdict(save_data)

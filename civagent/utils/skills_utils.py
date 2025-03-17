@@ -307,10 +307,14 @@ def get_skills(
     elif skill_name == "buy_luxury":
         for tool in game_skill_data["skills"][civ_name]:
             if skill_name == tool["skill_name"] and civ2_name == tool["to_civ"]:
+                # only support one luxury
                 pair_dict = {
                     "result": "true",
-                    "gold": tool["param"]["civ1_resource_dict"]["Gold"],
-                    "luxury": next(iter(tool["param"]["civ1_resource_dict"])),
+                    # TODO: civ1_resource_dict is missed
+                    # "gold": tool["param"]["civ1_resource_dict"]["Gold"],
+                    # "luxury": next(iter(tool["param"]["civ1_resource_dict"])),
+                    "gold": tool["param"]["offer"]["Gold"],
+                    "luxury": next(iter(tool["param"]["demand"])),
                 }
                 result = json.dumps(pair_dict)
                 logger.debug(f"{civ1_name} uses the {skill_name} skill on {civ2_name} --success")

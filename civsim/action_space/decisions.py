@@ -197,12 +197,12 @@ decision_space = {
     # Buy luxury goods
     "buy_luxury": {
         "decisions": {
-            "yes": "Agree to research cooperation",
-            "no": "Disagree to research cooperation",
+            "yes": "Agree to buy luxury",
+            "no": "Disagree to buy luxury",
         },
-        "param": gm_command.gm_command_space["research_agreement"]["param"],
+        "param": gm_command.gm_command_space["buy_luxury"]["param"],
         "func": lambda decision: (
-            gm_command.gm_command_space["research_agreement"]["func"] if decision == "yes" else identity_partial_fn
+            gm_command.gm_command_space["buy_luxury"]["func"] if decision == "yes" else identity_partial_fn
         ),
     },
     # Deceive with false information
